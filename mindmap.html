@@ -50,4 +50,202 @@
   </style>
 </head>
 <body>
-  <h2
+  <h2 id="header">5GL Mindmap – Stand: 09.07.2024, 08:25 Uhr (MEZ)</h2>
+  <div class="toolbar">
+    <button id="addRootBtn">➕ Hauptknoten hinzufügen</button>
+  </div>
+  <div id="canvas"></div>
+  <div id="formContainer" style="display:none;"></div>
+  <script>
+    // Fester Datenstand für diese Version
+    let mindmap = {
+      nodes: [
+        {id: 1, title: "5GL-Baustein-Sammlung", x: 390, y: 180, comment:"", parent: null},
+        {id: 2, title: "Bausteinverwaltung", x: 170, y: 80, comment: "", parent: 1},
+        {id: 3, title: "Klassendesigner", x: 630, y: 80, comment: "", parent: 1},
+        {id: 4, title: "Logbuch", x: 100, y: 260, comment: "", parent: 1},
+        {id: 5, title: "Hilfedokumentation", x: 700, y: 260, comment: "", parent: 1},
+        {id: 6, title: "Vorschau & Simulation", x: 200, y: 380, comment: "", parent: 1},
+        {id: 7, title: "Dateiverwaltung", x: 620, y: 380, comment: "", parent: 1},
+        {id: 8, title: "User & Rollen", x: 400, y: 450, comment: "", parent: 1},
+        {id: 9, title: "Projektverwaltung/Doku", x: 400, y: 40, comment: "", parent: 1}
+      ]
+    };
+    let nodeId = 10;
+    let dragNode = null, offsetX = 0, offsetY = 0;
+
+    function render() {
+      const canvas = document.getElementById('canvas');
+      canvas.innerHTML = "";
+      // Linien (SVG)
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.style.position = "absolute";
+      svg.style.top = "0"; svg.style.left = "0";
+      svg.setAttribute("width", canvas.offsetWidth);
+      svg.setAttribute("height", canvas.offsetHeight);
+
+      mindmap.nodes.forEach(n => {
+        if (n.parent !== null) {
+          const p = mindmap.nodes.find(nn => nn.id === n.parent);
+          if (p) {
+            let x1 = p.x + 75, y1 = p.y + 30;
+            let x2 = n.x + 75, y2 = n.y + 30;
+            let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#2a99e7");
+            line.setAttribute("stroke-width", "3");
+            svg.appendChild(line);
+          }
+        }
+      });
+      canvas.appendChild(svg);
+
+      mindmap.nodes.forEach(n => {
+        let div = document.createElement("div");
+        div.className = "node";
+        div.style.left = n.x + "px";
+        div.style.top = n.y + "px";
+        div.setAttribute("data-id", n.id);
+        div.innerHTML = `
+          <span>${escapeHTML(n.title)}</span>
+          <button class="btn edit-btn" data-id="${n.id}" title="Bearbeiten">✏️</button>
+          ${n.id !== 1 ? `<button class="btn del-btn" data-id="${n.id}" title="Löschen">🗑️</button>` : ""}
+          <button class="btn add-btn" data-id="${n.id}" title="Unterknoten">➕</button>
+          <div class="comment">${n.comment ? escapeHTML(n.comment) : "<span style='color:#bbb;'>(kein Kommentar)</span>"}</div>
+        `;
+        canvas.appendChild(div);
+      });
+    }
+
+    // Event delegation für alle Buttons
+    document.getElementById('canvas').addEventListener('click', function(e) {
+      let btn = e.target;
+      if (!btn.classList) return;
+      const id = Number(btn.getAttribute('data-id'));
+      if (btn.classList.contains('edit-btn')) return showEditForm(id);
+      if (btn.classList.contains('del-btn')) return deleteNode(id);
+      if (btn.classList.contains('add-btn')) return showNodeForm(id, false);
+    });
+
+    // Drag&Drop Desktop und Touch
+    document.getElementById('canvas').addEventListener('mousedown', dragStart);
+    document.body.addEventListener('mousemove', dragMove);
+    document.body.addEventListener('mouseup', dragEnd);
+
+    document.getElementById('canvas').addEventListener('touchstart', dragStart, {passive:false});
+    document.body.addEventListener('touchmove', dragMove, {passive:false});
+    document.body.addEventListener('touchend', dragEnd);
+
+    function dragStart(e) {
+      let isTouch = e.type.startsWith('touch');
+      let evt = isTouch ? e.touches[0] : e;
+      let div = e.target.closest('.node');
+      if (!div || e.target.tagName==="BUTTON" || formOpen()) return;
+      let id = Number(div.getAttribute('data-id'));
+      let n = mindmap.nodes.find(nn=>nn.id===id);
+      dragNode = n;
+      offsetX = evt.clientX - n.x;
+      offsetY = evt.clientY - n.y;
+      div.classList.add("selected");
+      if (isTouch) e.preventDefault();
+    }
+    function dragMove(e) {
+      if (!dragNode || formOpen()) return;
+      let isTouch = e.type.startsWith('touch');
+      let evt = isTouch ? e.touches[0] : e;
+      dragNode.x = evt.clientX - offsetX;
+      dragNode.y = evt.clientY - offsetY;
+      render();
+      if (isTouch) e.preventDefault();
+    }
+    function dragEnd() {
+      dragNode = null;
+      render();
+    }
+
+    function addRootNode() { showNodeForm(null, true); }
+    function showNodeForm(parentId, isRoot) {
+      const formDiv = document.getElementById("formContainer");
+      formDiv.innerHTML = `
+        <form class="node-form" onsubmit="return false;">
+          <label>Knoten-Titel:</label>
+          <input type="text" id="nodeTitle" required>
+          <label>Kommentar/Notiz:</label>
+          <textarea id="nodeComment"></textarea>
+          <div class="actions">
+            <button onclick="hideForm()" type="button">Abbrechen</button>
+            <button onclick="submitForm(${parentId},${isRoot?'true':'false'})" type="button">Speichern</button>
+          </div>
+        </form>
+      `;
+      formDiv.style.display = "block";
+      document.getElementById("nodeTitle").focus();
+    }
+    function submitForm(parentId, isRoot) {
+      const title = document.getElementById("nodeTitle").value;
+      const comment = document.getElementById("nodeComment").value;
+      if (!title) return;
+      let newNode = {
+        id: nodeId++,
+        title,
+        x: 360 + Math.random()*120,
+        y: 200 + Math.random()*120,
+        comment,
+        parent: isRoot ? null : parentId
+      };
+      mindmap.nodes.push(newNode);
+      hideForm();
+      render();
+    }
+    function hideForm() {
+      document.getElementById("formContainer").style.display = "none";
+      document.getElementById("formContainer").innerHTML = "";
+    }
+    function showEditForm(id) {
+      let n = mindmap.nodes.find(nn=>nn.id===id);
+      const formDiv = document.getElementById("formContainer");
+      formDiv.innerHTML = `
+        <form class="node-form" onsubmit="return false;">
+          <label>Knoten-Titel:</label>
+          <input type="text" id="nodeTitle" value="${escapeHTML(n.title)}" required>
+          <label>Kommentar/Notiz:</label>
+          <textarea id="nodeComment">${escapeHTML(n.comment)}</textarea>
+          <div class="actions">
+            <button onclick="hideForm()" type="button">Abbrechen</button>
+            <button onclick="submitEdit(${id})" type="button">Speichern</button>
+          </div>
+        </form>
+      `;
+      formDiv.style.display = "block";
+      document.getElementById("nodeTitle").focus();
+    }
+    function submitEdit(id) {
+      let n = mindmap.nodes.find(nn=>nn.id===id);
+      n.title = document.getElementById("nodeTitle").value;
+      n.comment = document.getElementById("nodeComment").value;
+      hideForm();
+      render();
+    }
+    function deleteNode(id) {
+      if (!confirm("Knoten und alle darunter löschen?")) return;
+      const removeRec = id => {
+        mindmap.nodes.filter(n => n.parent === id).forEach(n => removeRec(n.id));
+        mindmap.nodes = mindmap.nodes.filter(n => n.id !== id);
+      };
+      removeRec(id);
+      render();
+    }
+    function formOpen() {
+      return document.getElementById("formContainer").style.display==="block";
+    }
+    function escapeHTML(str) {
+      return (str||"").replace(/[&<>"]/g, ch=>({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[ch]));
+    }
+    document.getElementById("addRootBtn").onclick = function() { addRootNode(); };
+    render();
+  </script>
+</body>
+</html>
