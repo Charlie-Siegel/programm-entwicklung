@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Ideenbank (Import-Review, Übernehmen/Verwerfen Buttons)</title>
+  <title>Ideenbank (Import mit Toolbar-Buttons, final)</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
     #wrapper { max-width: 1100px; margin: 18px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 16px 22px 24px 22px; }
@@ -43,7 +43,7 @@
     .edit-dialog .close-x:hover { color:#b00;}
     .edit-dialog textarea { width:100%; min-height:4em; resize:vertical; }
     .imported-row { background: #fffde0 !important; }
-    #importBtnBar { margin-top:7px; }
+    #importToolbar { margin-left: 14px; }
     @media (max-width: 700px) {
       .edit-dialog { width:98vw; padding:10px 3vw 10px 3vw; }
       .edit-dialog-fields { gap: 10px 6px; }
@@ -52,7 +52,7 @@
 </head>
 <body>
   <div id="wrapper">
-    <h2>Ideenbank <span class="small">(Import-Review, Übernehmen/Verwerfen)</span></h2>
+    <h2>Ideenbank <span class="small">(Import-Review mit Toolbar-Buttons)</span></h2>
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:120px;">
       <select id="kategorie" style="width:112px;"></select>
@@ -72,6 +72,7 @@
       <button class="btn" id="importBtn" onclick="document.getElementById('importFile').click()">⤒ Importieren</button>
       <input type="file" id="importFile" accept=".json" style="display:none">
       <span style="float:right" class="small" id="autosaveMsg"></span>
+      <span id="importToolbar" style="margin-left:14px;"></span>
     </div>
     <table id="ideenTabelle">
       <thead>
@@ -91,7 +92,6 @@
     <div class="small">
       Prio: <span class="prio-hoch">hoch</span> | <span class="prio-mittel">mittel</span> | <span class="prio-niedrig">niedrig</span>
     </div>
-    <div id="importBtnBar"></div>
   </div>
 
   <div id="editDialogBG" class="edit-dialog-bg" style="display:none;">
@@ -237,14 +237,12 @@
     }
 
     function renderImportBtnBar() {
-      let d = document.getElementById("importBtnBar");
-      if(!importBuffer.length) { d.innerHTML = ""; return; }
-      d.innerHTML = `
-        <div class="imported-row" style="padding:10px; border-radius:7px; margin-top:6px; border:1.2px solid #e5e2b8;">
-          <b>${importBuffer.length} importierte (gelbe) Ideen – prüfen, bearbeiten oder löschen!</b>
-          <button class="btn" onclick="acceptImport()">Alle übernehmen</button>
-          <button class="btn" onclick="cancelImport()">Alle verwerfen</button>
-        </div>
+      let bar = document.getElementById("importToolbar");
+      if(!importBuffer.length) { bar.innerHTML = ""; return; }
+      bar.innerHTML = `
+        <button class="btn" style="background:#e6ffe6;border:1px solid #4cab47;color:#127010;" onclick="acceptImport()">Alle übernehmen</button>
+        <button class="btn" style="background:#fff0e0;border:1px solid #c47941;color:#9c4200;" onclick="cancelImport()">Alle verwerfen</button>
+        <span class="small" style="margin-left:10px;color:#957800;">${importBuffer.length} importierte (gelbe) Ideen – prüfe, bearbeite oder lösche sie unten!</span>
       `;
     }
     function acceptImport() {
@@ -399,6 +397,7 @@
     autorestore();
     renderDropdowns();
     renderTabelle();
+    renderImportBtnBar();
   </script>
 </body>
 </html>
