@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>SHV Social-Media JSON-Editor</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #bbb; padding: 8px; }
+    th { background: #e0e0e0; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .controls { margin-bottom: 20px; }
+    .btn { padding: 5px 10px; margin-right: 5px; }
+    .edit-input { width: 95%; }
+    #jsonOutput { width: 100%; height: 200px; }
+    @media print {
+      .controls, #jsonOutput, .edit-btn, .delete-btn, #downloadBtn { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>SHV Social-Media JSON-Editor</h1>
+  <div class="controls">
+    <input type="file" id="fileInput" accept=".json">
+    <button class="btn" onclick="addEntry()">+ Neu</button>
+    <button class="btn" onclick="downloadJson()" id="downloadBtn">JSON herunterladen</button>
+    <button class="btn" onclick="window.print()">Druckansicht</button>
+  </div>
+  <table id="editorTable">
+    <thead>
+      <tr>
+        <th>Titel</th>
+        <th>Geplant am</th>
+        <th>Plattformen</th>
+        <th>Status</th>
+        <th>Kategorie</th>
+        <th>Zielgruppen</th>
+        <th>Autor</th>
+        <th>Org</th>
+        <th>Link</th>
+        <th>Aktionen</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <h3>JSON-Export (zum Kopieren oder Speichern):</h3>
+  <textarea id="jsonOutput" readonly></textarea>
+
+  <script>
+    let posts = [];
+
+    function renderTable() {
+      const tbody = document.querySelector("#editorTable tbody");
+      tbody.innerHTML = "";
+      posts.forEach((post, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escape(post.titel)}</td>
+          <td>${escape(post.datum_geplant)}</td>
+          <td>${Array.isArray(post.plattformen) ? post.plattformen.join(", ") : ""}</td>
+          <td>${escape(post.status)}</td>
+          <td>${escape(post.kategorie)}</td>
+          <td>${Array.isArray(post.zielgruppen) ? post.zielgruppen.join(", ") : ""}</td>
+          <td>${escape(post.autor)}</td>
+          <td>${escape(post.org_unit || "")}</td>
+          <td><a href="${escape(post.link_zur_webseite)}" target="_blank">Link</a></td>
+          <td>
+            <button class="btn edit-btn" onclick="editEntry(${idx})">Bearbeiten</button>
+            <button class="btn delete-btn" onclick="deleteEntry(${idx})">Löschen</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      updateJsonOutput();
+    }
+
+    function escape(txt) {
+      return String(txt||"").replace(/[<>&"]/g, ch => ({
+        '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'
+      }[ch]));
+    }
+
+    function updateJsonOutput() {
+      document.getElementById("jsonOutput").value = JSON.stringify(posts, null, 2);
+    }
+
+    // Datei einlesen
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          posts = JSON.parse(evt.target.result);
+          if (!Array.isArray(posts)) posts = [];
+          renderTable();
+        } catch (err) {
+          alert("Fehler beim Einlesen der JSON-Datei.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function addEntry() {
+      const neu = {
+        id: "id_" + Date.now(),
+        titel: "",
+        kurztext: "",
+        datum_geplant: "",
+        plattformen: [],
+        status: "",
+        kategorie: "",
+        zielgruppen: [],
+        autor: "",
+        org_unit: "",
+        link_zur_webseite: "",
+        archiviert: false
+      };
+      posts.push(neu);
+      editEntry(posts.length-1, true);
+    }
+
+    function editEntry(idx, isNew=false) {
+      const post = posts[idx];
+      const tr = document.querySelectorAll("#editorTable tbody tr")[idx];
+      tr.innerHTML = `
+        <td><input class="edit-input" value="${escape(post.titel)}" onchange="updateField(${idx},'titel',this.value)"></td>
+        <td><input type="date" class="edit-input" value="${escape(post.datum_geplant)}" onchange="updateField(${idx},'datum_geplant',this.value)"></td>
+        <td><input class="edit-input" value="${(post.plattformen||[]).join(', ')}" onchange="updateArrayField(${idx},'plattformen',this.value)"></td>
+        <td><input class="edit-input" value="${escape(post.status)}" onchange="updateField(${idx},'status',this.value)"></td>
+        <td><input class="edit-input" value="${escape(post.kategorie)}" onchange="updateField(${idx},'kategorie',this.value)"></td>
+        <td><input class="edit-input" value="${(post.zielgruppen||[]).join(', ')}" onchange="updateArrayField(${idx},'zielgruppen',this.value)"></td>
+        <td><input class="edit-input" value="${escape(post.autor)}" onchange="updateField(${idx},'autor',this.value)"></td>
+        <td><input class="edit-input" value="${escape(post.org_unit||'')}" onchange="updateField(${idx},'org_unit',this.value)"></td>
+        <td><input class="edit-input" value="${escape(post.link_zur_webseite)}" onchange="updateField(${idx},'link_zur_webseite',this.value)"></td>
+        <td>
+          <button class="btn" onclick="saveEdit(${idx})">Speichern</button>
+          <button class="btn" onclick="cancelEdit()">Abbrechen</button>
+        </td>
+      `;
+      tr.querySelector("input").focus();
+    }
+
+    function updateField(idx, key, value) {
+      posts[idx][key] = value;
+      updateJsonOutput();
+    }
+    function updateArrayField(idx, key, value) {
+      posts[idx][key] = value.split(',').map(v => v.trim()).filter(Boolean);
+      updateJsonOutput();
+    }
+    function saveEdit(idx) { renderTable(); }
+    function cancelEdit()  { renderTable(); }
+
+    function deleteEntry(idx) {
+      if(confirm("Wirklich löschen?")) {
+        posts.splice(idx,1);
+        renderTable();
+      }
+    }
+
+    function downloadJson() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(posts, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute('href', dataStr);
+      a.setAttribute('download', 'posts.json');
+      a.click();
+    }
+
+    // Starte mit leerer Tabelle
+    renderTable();
+  </script>
+</body>
+</html>
