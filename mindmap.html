@@ -2,13 +2,19 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>5GL Mindmap – Einzelne Box (Touch Fix, statischer Zeitstempel)</title>
+  <title>5GL Mindmap – Einzelne Box (Touch-optimiert)</title>
   <style>
-    #canvas { width: 100vw; height: 85vh; background: #eef6fa; position:relative; overflow: hidden; }
+    #canvas {
+      width: 100vw; height: 85vh;
+      background: #eef6fa;
+      position:relative; overflow: hidden;
+      /* Touch: blockiere Scrollen während Drag */
+      touch-action: none;
+      -webkit-user-select: none;
+    }
     .node {
       position: absolute;
-      min-width: 160px;
-      max-width: 240px;
+      min-width: 160px; max-width: 240px;
       padding: 20px 20px 16px 20px;
       border-radius: 16px;
       background: #fff;
@@ -17,24 +23,22 @@
       text-align: center;
       user-select: none;
       border: 2px solid #78befa;
-      font-weight: bold;
-      font-size: 1.1em;
+      font-weight: bold; font-size: 1.1em;
       transition: box-shadow 0.1s;
-      top: 100px;
-      left: 150px;
+      top: 100px; left: 150px;
+      /* Mobile/Tablet-Performance */
+      will-change: left, top, transform;
     }
     #header { margin: 0; padding: 14px 30px; font-size: 1.35em; color: #0287c2; letter-spacing: 1px; }
   </style>
 </head>
 <body>
-  <h2 id="header">5GL Mindmap – Stand: 08.07.2024, 18:48 Uhr</h2>
+  <h2 id="header">5GL Mindmap – Stand: 08.07.2024, 18:57 Uhr (EU)</h2>
   <div id="canvas"></div>
   <script>
-    // Ein einzelner Knoten
     let node = {
-      title: "Mein erster Knoten (zieh mich mit der Maus oder dem Finger!)",
-      x: 200,
-      y: 120
+      title: "Mein erster Knoten (ziehen: Maus oder Finger)",
+      x: 200, y: 120
     };
 
     function render() {
@@ -47,7 +51,7 @@
       div.style.top = node.y + "px";
       canvas.appendChild(div);
 
-      // Drag & Drop Desktop
+      // Desktop Drag & Drop
       let dragging = false, offsetX = 0, offsetY = 0;
       div.onmousedown = function(e) {
         dragging = true;
@@ -58,7 +62,8 @@
           if (dragging) {
             node.x = e.clientX - offsetX;
             node.y = e.clientY - offsetY;
-            render();
+            div.style.left = node.x + "px";
+            div.style.top = node.y + "px";
           }
         };
         document.onmouseup = function() {
@@ -69,21 +74,22 @@
         };
       };
 
-      // Drag & Drop Touch (iPad & Co.)
+      // Touch Drag & Drop
       div.ontouchstart = function(e) {
         let touch = e.touches[0];
         dragging = true;
         offsetX = touch.clientX - node.x;
         offsetY = touch.clientY - node.y;
         div.style.boxShadow = "0 0 16px #00bcd47c";
-        e.preventDefault(); // <-- WICHTIG: Scrolling verhindern!
+        e.preventDefault();
         document.ontouchmove = function(e) {
           if (dragging) {
             let t = e.touches[0];
             node.x = t.clientX - offsetX;
             node.y = t.clientY - offsetY;
-            render();
-            e.preventDefault(); // <-- WICHTIG: Scrolling verhindern!
+            div.style.left = node.x + "px";
+            div.style.top = node.y + "px";
+            e.preventDefault();
           }
         };
         document.ontouchend = function() {
