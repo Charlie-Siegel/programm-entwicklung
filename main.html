@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>5GL-Projekt – Hauptmenü</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { margin: 0; background: #f6faff; font-family: sans-serif;}
+    .menu {
+      display: flex; align-items: center;
+      background: #0287c2; color: #fff;
+      padding: 0 16px; font-size: 1.13em;
+      min-height: 48px;
+      box-shadow: 0 2px 7px #0001;
+    }
+    .menu .brand { font-weight: bold; letter-spacing: 1px; margin-right: 20px; }
+    .menu .item, .menu .dropdown { position: relative; }
+    .menu .link, .menu .dropdown-toggle {
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1em;
+      transition: background 0.15s;
+    }
+    .menu .link:hover, .menu .dropdown-toggle:hover, .menu .active {
+      background: #0ca1f2;
+      color: #fff;
+    }
+    .menu .dropdown-content {
+      display: none;
+      position: absolute;
+      left: 0; top: 100%;
+      min-width: 210px;
+      z-index: 10;
+      background: #fff;
+      box-shadow: 0 2px 8px #0002;
+      border-radius: 0 0 10px 10px;
+      overflow: hidden;
+    }
+    .menu .dropdown-content .dropdown-link {
+      display: block;
+      padding: 11px 20px;
+      color: #0287c2;
+      text-decoration: none;
+      background: #e6f2ff;
+      border-bottom: 1px solid #d0e6f9;
+      transition: background 0.13s;
+      cursor: pointer;
+      font-size: 0.98em;
+    }
+    .menu .dropdown-content .dropdown-link:last-child { border-bottom: none; }
+    .menu .dropdown-content .dropdown-link:hover {
+      background: #c7e6fa;
+    }
+    .menu .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    #mainContent {
+      max-width: 960px;
+      margin: 44px auto 0 auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px #0002;
+      padding: 32px 30px 36px 30px;
+      min-height: 320px;
+    }
+    iframe {
+      width: 100%; height: 62vh;
+      border: none; border-radius: 8px;
+      background: #f6faff;
+      margin-top: 18px;
+      box-shadow: 0 2px 10px #0001;
+    }
+    @media (max-width: 850px) {
+      #mainContent { max-width: 98vw; padding: 3vw;}
+      iframe { height: 46vw; min-height: 280px;}
+    }
+  </style>
+</head>
+<body>
+  <nav class="menu">
+    <span class="brand">5GL-Projekt</span>
+    <button class="link" onclick="loadPage('test.html')">Testumgebung</button>
+    <button class="link" onclick="clearIframe()">Leer</button>
+    <div class="dropdown">
+      <button class="dropdown-toggle">Dokumentation ▾</button>
+      <div class="dropdown-content">
+        <div class="dropdown-link" onclick="loadPage('JSON-Klassen.html')">JSON-Klassenbeschreibung</div>
+        <div class="dropdown-link" onclick="loadPage('generator_ui.html')">Code-Generator</div>
+      </div>
+    </div>
+  </nav>
+  <div id="mainContent">
+    <h2>Willkommen zum 5GL-Projekt!</h2>
+    <p>Bitte wähle eine Funktion im Menü:<br>
+      <b>Testumgebung</b> – lädt <code>test.html</code> (falls vorhanden, sonst Hinweis).<br>
+      <b>Dokumentation</b> – Auswahl für JSON- und Code-Tools.<br>
+      <b>Leer</b> – entfernt eingebetteten Inhalt.<br>
+    </p>
+    <div id="iframeBox"></div>
+  </div>
+  <script>
+    function loadPage(filename) {
+      // Entfernt bestehendes iframe
+      clearIframe();
+      // Erzeuge und setze neues iframe
+      let iframe = document.createElement("iframe");
+      iframe.src = filename;
+      iframe.onload = function() {
+        // Test, ob Seite erfolgreich geladen wurde:
+        if (iframe.contentWindow.document.body.innerHTML.trim() === "" ||
+            (iframe.contentDocument && iframe.contentDocument.title === "")) {
+          showError("Die Datei <b>" + filename + "</b> konnte nicht geladen werden oder ist leer.");
+        }
+      };
+      iframe.onerror = function() {
+        showError("Die Datei <b>" + filename + "</b> wurde nicht gefunden.");
+      };
+      // Falls es die Seite nicht gibt, fange Fehler in 1-2s ab:
+      setTimeout(function() {
+        if (!iframe.contentWindow || !iframe.contentWindow.document.body || iframe.contentWindow.document.body.innerHTML === "") {
+          showError("Die Datei <b>" + filename + "</b> wurde nicht gefunden oder lädt nicht.");
+        }
+      }, 1200);
+      document.getElementById("iframeBox").appendChild(iframe);
+    }
+    function showError(msg) {
+      clearIframe();
+      let box = document.getElementById("iframeBox");
+      let err = document.createElement("div");
+      err.innerHTML = `<div style="color:#b00; background:#fce0e0; border-radius:8px; padding:18px 20px; margin:16px 0; border:2px solid #ea8a8a; font-size:1.11em;"><b>Fehler:</b> ${msg}</div>`;
+      box.appendChild(err);
+    }
+    function clearIframe() {
+      document.getElementById("iframeBox").innerHTML = "";
+    }
+  </script>
+</body>
+</html>
