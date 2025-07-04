@@ -1,8 +1,3 @@
-WICHTIG: Kopiere ALLES von hier bis ganz unten einschließlich der drei Backticks am Ende!
-
-markdown
-Kopieren
-Bearbeiten
 # Projektbeschreibung: 5GL-Baustein-Sammlung
 
 ---
@@ -15,30 +10,35 @@ Dieses Projekt dient der Entwicklung einer webbasierten Plattform, in der modula
 
 ## ✨ 2. Ziele und Nutzen
 
-- **Wiederverwendbarkeit:** Bausteine nur einmal definieren und beliebig oft verwenden.
-- **Transparenz:** Alle Änderungen automatisch protokollieren.
-- **Dokumentation:** Nutzer erhalten sofort verständliche Hilfetexte zu jedem Element.
-- **Flexibilität:** Zugriff von Laptop, Tablet und Smartphone über GitHub Pages.
+* **Wiederverwendbarkeit:** Bausteine nur einmal definieren und beliebig oft verwenden.
+* **Transparenz:** Alle Änderungen automatisch protokollieren.
+* **Dokumentation:** Nutzer erhalten sofort verständliche Hilfetexte zu jedem Element.
+* **Flexibilität:** Zugriff von Laptop, Tablet und Smartphone über GitHub Pages.
 
 ---
 
 ## ✨ 3. Zentrale Funktionen
 
-- **Bausteinverwaltung**
-  - Anlegen, Bearbeiten und Löschen von Attributen, Methoden und Events
-  - Status (z.B. „approved“, „draft“)
+* **Bausteinverwaltung**
 
-- **Klassendesigner**
-  - Zusammenstellen neuer Klassen aus geprüften Bausteinen
+  * Anlegen, Bearbeiten und Löschen von Attributen, Methoden und Events
+  * Status (z.B. „approved“, „draft“)
 
-- **Logbuch**
-  - Automatisches Protokoll aller Änderungen mit Zeitstempel
+* **Klassendesigner**
 
-- **Hilfedokumentation**
-  - Erklärungen zu allen Feldern und Funktionen
+  * Zusammenstellen neuer Klassen aus geprüften Bausteinen
 
-- **Vorschau & Simulation**
-  - Anzeige eines Icons und Testen der Methoden/Events
+* **Logbuch**
+
+  * Automatisches Protokoll aller Änderungen mit Zeitstempel
+
+* **Hilfedokumentation**
+
+  * Erklärungen zu allen Feldern und Funktionen
+
+* **Vorschau & Simulation**
+
+  * Anzeige eines Icons und Testen der Methoden/Events
 
 ---
 
@@ -48,10 +48,10 @@ Frontend in HTML/JavaScript, Datenhaltung in JSON-Dateien. Keine serverseitige L
 
 **Komponenten:**
 
-- `index.html`: Zentrale Weboberfläche
-- `logbuch.js`: Modul für automatische Log-Erfassung
-- `hilfe.json`: Sammlung aller Hilfetexte
-- `/data`: JSON-Dateien für Attribute, Methoden, Events
+* `index.html`: Zentrale Weboberfläche
+* `logbuch.js`: Modul für automatische Log-Erfassung
+* `hilfe.json`: Sammlung aller Hilfetexte
+* `/data`: JSON-Dateien für Attribute, Methoden, Events
 
 ---
 
@@ -69,18 +69,16 @@ Frontend in HTML/JavaScript, Datenhaltung in JSON-Dateien. Keine serverseitige L
 
 ## ✨ 6. Dateistruktur
 
+```
 /index.html
 /logbuch.js
 /projektbeschreibung.md
 /data/
-attributes.json
-methods.json
-events.json
+   attributes.json
+   methods.json
+   events.json
 /hilfe.json
-
-yaml
-Kopieren
-Bearbeiten
+```
 
 ---
 
@@ -89,6 +87,7 @@ Bearbeiten
 Die Datei `hilfe.json` enthält strukturierte Beschreibungen aller Attribute, Methoden und Events, die in der Oberfläche eingeblendet werden können.
 
 **Beispiel:**
+
 ```json
 {
   "attribute": {
@@ -96,37 +95,50 @@ Die Datei `hilfe.json` enthält strukturierte Beschreibungen aller Attribute, Me
     "scale": "Größe des Objekts relativ zu 1."
   }
 }
-✨ 8. Versionierung & Änderungen
-Datum	Änderung	User
-2024-07-06	Projektstart	Charlie
-2024-07-06	Logbuch-Modul implementiert	Charlie
-2024-07-06	Projektbeschreibung erstellt	Charlie
+```
 
-✨ 9. Kurzübersicht
-Projektname:
+---
+
+## ✨ 8. Versionierung & Änderungen
+
+| Datum      | Änderung                     | User    |
+| ---------- | ---------------------------- | ------- |
+| 2024-07-06 | Projektstart                 | Charlie |
+| 2024-07-06 | Logbuch-Modul implementiert  | Charlie |
+| 2024-07-06 | Projektbeschreibung erstellt | Charlie |
+
+---
+
+## ✨ 9. Kurzübersicht
+
+**Projektname:**
 5GL-Baustein-Sammlung
 
-Ziel:
+**Ziel:**
 Erstellung einer modularen, webbasierten Entwicklungsumgebung ohne klassische Programmierung.
 
-Status:
+**Status:**
 In Entwicklung
 
-Nächster Schritt:
+**Nächster Schritt:**
 Implementierung der Bausteinverwaltung mit Formularen.
 
-✨ 10. Diagramm
-mermaid
-Kopieren
-Bearbeiten
+---
+
+## ✨ 10. Diagramm
+
+```mermaid
 graph TD
     User --> Frontend
     Frontend --> Logbuch
     Frontend --> Hilfedatei
     Frontend --> JSON-Daten
-✨ 11. Lizenz und Nutzung
+```
+
+---
+
+## ✨ 11. Lizenz und Nutzung
+
 Dieses Projekt dient ausschließlich zu Lern- und Testzwecken. Eine kommerzielle Nutzung erfordert Rücksprache.
 
-yaml
-Kopieren
-Bearbeiten
+---
