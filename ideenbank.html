@@ -14,6 +14,7 @@
     .btn:hover { background: #c8e4fa; }
     #formDiv { margin-bottom: 18px; }
     .small { font-size: 0.97em; color: #888;}
+    #exportBtn, #importBtn { margin-right: 12px; }
   </style>
 </head>
 <body>
@@ -27,6 +28,11 @@
       <input id="beschreibung" placeholder="Beschreibung" style="width:210px;">
       <button class="btn" onclick="addIdee()">➕ Hinzufügen</button>
     </div>
+    <div style="margin-bottom:12px;">
+      <button class="btn" id="exportBtn" onclick="exportIdeen()">⤓ Exportieren</button>
+      <button class="btn" id="importBtn" onclick="document.getElementById('importFile').click()">⤒ Importieren</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
     <table id="ideenTabelle">
       <thead>
         <tr>
@@ -35,7 +41,7 @@
       </thead>
       <tbody></tbody>
     </table>
-    <div class="small">Alle Einträge werden aktuell nur im lokalen Speicher gehalten (Dateiimport/-export später möglich).</div>
+    <div class="small">Ideen können jetzt exportiert/importiert werden. <br>Exportiert wird im 5GL-Format (Kompatibilität zu jeder neuen Version garantiert!).</div>
   </div>
   <script>
     let ideen = [];
@@ -73,7 +79,32 @@
       ideen = ideen.filter(i => i.id !== id);
       renderTabelle();
     }
-    // Demo: Einige Beispielideen laden
+    function exportIdeen() {
+      let blob = new Blob([JSON.stringify({ideen}, null, 2)], {type:"application/json"});
+      let a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ideenbank.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>document.body.removeChild(a), 400);
+    }
+    document.getElementById('importFile').onchange = function(e) {
+      let file = e.target.files[0];
+      if (!file) return;
+      let reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          let data = JSON.parse(evt.target.result);
+          if (!data.ideen || !Array.isArray(data.ideen)) throw new Error("Formatfehler: Array 'ideen' fehlt!");
+          ideen = data.ideen.map((idee, idx) => ({...idee, id: idx+1}));
+          renderTabelle();
+        } catch (err) {
+          alert("Fehler beim Importieren:\n" + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+    // Startdaten (Demo, kann gelöscht werden)
     ideen = [
       {id:1, titel:"Methodenbank-Editor", kategorie:"Tool", datum:"2024-07-09", status:"offen", beschreibung:"Im Browser Methoden direkt anlegen, bearbeiten und löschen."},
       {id:2, titel:"Code-/Doku-Export", kategorie:"Export", datum:"2024-07-09", status:"offen", beschreibung:"Automatischer Export der Methodenbank als Markdown oder HTML."},
