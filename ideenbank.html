@@ -5,7 +5,7 @@
   <title>Ideenbank</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0;}
-    #wrapper { max-width: 830px; margin: 34px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0002; padding: 30px; }
+    #wrapper { max-width: 900px; margin: 34px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0002; padding: 30px; }
     h2 { color: #0287c2; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 24px;}
     th, td { border: 1px solid #e0e5ee; padding: 7px 10px; }
@@ -15,6 +15,7 @@
     #formDiv { margin-bottom: 18px; }
     .small { font-size: 0.97em; color: #888;}
     #exportBtn, #importBtn { margin-right: 12px; }
+    .add-btn { font-size: 1.1em; padding: 2px 7px; margin-left: 2px;}
   </style>
 </head>
 <body>
@@ -22,9 +23,11 @@
     <h2>Ideenbank</h2>
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:130px;">
-      <input id="kategorie" placeholder="Kategorie" style="width:110px;">
-      <input id="datum" type="date" style="width:130px;">
-      <input id="status" placeholder="Status" style="width:100px;">
+      <select id="kategorie" style="width:120px;"></select>
+      <button class="btn add-btn" onclick="addKategorie()" title="Kategorie hinzufügen">+</button>
+      <select id="status" style="width:120px;"></select>
+      <button class="btn add-btn" onclick="addStatus()" title="Status hinzufügen">+</button>
+      <input id="datum" type="date" style="width:120px;">
       <input id="beschreibung" placeholder="Beschreibung" style="width:210px;">
       <button class="btn" onclick="addIdee()">➕ Hinzufügen</button>
     </div>
@@ -41,10 +44,27 @@
       </thead>
       <tbody></tbody>
     </table>
-    <div class="small">Ideen können jetzt exportiert/importiert werden. <br>Exportiert wird im 5GL-Format (Kompatibilität zu jeder neuen Version garantiert!).</div>
+    <div class="small">Status/Kategorien können per „+“ ergänzt werden.<br>
+      Ideen können jetzt exportiert/importiert werden. Exportiert wird im 5GL-Format.<br>
+      <b>Tipp:</b> Beim Import werden die Kategorien und Status der importierten Ideen automatisch übernommen, falls sie noch nicht existieren.
+    </div>
   </div>
   <script>
     let ideen = [];
+    let kategorien = ["Tool", "Export", "Organisation"];
+    let stati = ["offen", "in Arbeit", "erledigt", "wichtig"];
+
+    function renderDropdowns() {
+      // Kategorie
+      let selKat = document.getElementById("kategorie");
+      selKat.innerHTML = "";
+      kategorien.forEach(k => selKat.innerHTML += `<option>${k}</option>`);
+      // Status
+      let selStat = document.getElementById("status");
+      selStat.innerHTML = "";
+      stati.forEach(s => selStat.innerHTML += `<option>${s}</option>`);
+    }
+
     function renderTabelle() {
       let tb = document.querySelector("#ideenTabelle tbody");
       tb.innerHTML = "";
@@ -59,28 +79,51 @@
         </tr>`;
       }
     }
+
+    function addKategorie() {
+      let kat = prompt("Neue Kategorie anlegen:");
+      if (!kat) return;
+      if (kategorien.includes(kat)) { alert("Kategorie existiert schon."); return; }
+      kategorien.push(kat);
+      renderDropdowns();
+      document.getElementById("kategorie").value = kat;
+    }
+
+    function addStatus() {
+      let stat = prompt("Neuen Status anlegen:");
+      if (!stat) return;
+      if (stati.includes(stat)) { alert("Status existiert schon."); return; }
+      stati.push(stat);
+      renderDropdowns();
+      document.getElementById("status").value = stat;
+    }
+
     function addIdee() {
       let titel = document.getElementById("titel").value.trim();
-      let kategorie = document.getElementById("kategorie").value.trim();
+      let kategorie = document.getElementById("kategorie").value;
       let datum = document.getElementById("datum").value || (new Date()).toISOString().slice(0,10);
-      let status = document.getElementById("status").value.trim() || "offen";
+      let status = document.getElementById("status").value;
       let beschreibung = document.getElementById("beschreibung").value.trim();
       if (!titel) { alert("Bitte Titel angeben."); return; }
       let id = (ideen.length ? Math.max(...ideen.map(i=>i.id))+1 : 1);
       ideen.push({id, titel, kategorie, datum, status, beschreibung});
       renderTabelle();
       document.getElementById("titel").value = "";
-      document.getElementById("kategorie").value = "";
-      document.getElementById("status").value = "";
       document.getElementById("beschreibung").value = "";
     }
+
     function deleteIdee(id) {
       if (!confirm("Idee wirklich löschen?")) return;
       ideen = ideen.filter(i => i.id !== id);
       renderTabelle();
     }
+
     function exportIdeen() {
-      let blob = new Blob([JSON.stringify({ideen}, null, 2)], {type:"application/json"});
+      let blob = new Blob([JSON.stringify({
+        ideen,
+        kategorien,
+        stati
+      }, null, 2)], {type:"application/json"});
       let a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'ideenbank.json';
@@ -88,6 +131,7 @@
       a.click();
       setTimeout(()=>document.body.removeChild(a), 400);
     }
+
     document.getElementById('importFile').onchange = function(e) {
       let file = e.target.files[0];
       if (!file) return;
@@ -96,7 +140,20 @@
         try {
           let data = JSON.parse(evt.target.result);
           if (!data.ideen || !Array.isArray(data.ideen)) throw new Error("Formatfehler: Array 'ideen' fehlt!");
-          ideen = data.ideen.map((idee, idx) => ({...idee, id: idx+1}));
+          // Neue Kategorien und Stati aus Import ergänzen:
+          if (Array.isArray(data.kategorien)) {
+            data.kategorien.forEach(kat => { if (!kategorien.includes(kat)) kategorien.push(kat); });
+          }
+          if (Array.isArray(data.stati)) {
+            data.stati.forEach(stat => { if (!stati.includes(stat)) stati.push(stat); });
+          }
+          // Importierte Ideen (IDs neu vergeben, falls nötig)
+          let nextId = ideen.length ? Math.max(...ideen.map(i=>i.id)) + 1 : 1;
+          data.ideen.forEach((idee, idx) => {
+            idee.id = nextId++;
+            ideen.push(idee);
+          });
+          renderDropdowns();
           renderTabelle();
         } catch (err) {
           alert("Fehler beim Importieren:\n" + err.message);
@@ -104,13 +161,15 @@
       };
       reader.readAsText(file);
     };
-    // Startdaten (Demo, kann gelöscht werden)
+
+    // Starteinträge (Demo, kann gelöscht werden)
     ideen = [
       {id:1, titel:"Methodenbank-Editor", kategorie:"Tool", datum:"2024-07-09", status:"offen", beschreibung:"Im Browser Methoden direkt anlegen, bearbeiten und löschen."},
       {id:2, titel:"Code-/Doku-Export", kategorie:"Export", datum:"2024-07-09", status:"offen", beschreibung:"Automatischer Export der Methodenbank als Markdown oder HTML."},
       {id:3, titel:"Vergleich von Methodenbanken", kategorie:"Tool", datum:"2024-07-09", status:"offen", beschreibung:"Zwei JSON-Methodenbanken auf Unterschiede prüfen und visualisieren."},
       {id:4, titel:"Ideenlogbuch integrieren", kategorie:"Organisation", datum:"2024-07-09", status:"offen", beschreibung:"Alle Systemideen und -vorschläge werden gespeichert und können bearbeitet werden."}
     ];
+    renderDropdowns();
     renderTabelle();
   </script>
 </body>
