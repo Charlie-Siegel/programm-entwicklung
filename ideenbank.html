@@ -2,15 +2,16 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Ideenbank (mit Editieren & Prio)</title>
+  <title>Ideenbank (Sortiericons, Edit-Dialog optimiert)</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
     #wrapper { max-width: 1100px; margin: 18px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 16px 22px 24px 22px; }
     h2 { color: #0287c2; margin-bottom: 7px;}
     table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
     th, td { border: 1px solid #e0e5ee; padding: 6px 9px; }
-    th { background: #e6f2ff; cursor:pointer; user-select:none; font-weight:500; font-size:1em; }
-    .sort-arrow { margin-left:3px; font-size:0.93em;}
+    th { background: #e6f2ff; cursor:pointer; user-select:none; font-weight:500; font-size:1em; text-align:left; }
+    .sort-arrow { margin-left:3px; font-size:0.93em; color:#bbb;}
+    .sort-arrow.active { color:#1587c7; font-weight:bold;}
     .btn { background: #e6f2ff; color: #0287c2; border: none; border-radius: 5px; padding: 5px 12px; cursor: pointer;}
     .btn:hover { background: #c8e4fa; }
     #formDiv { margin-bottom: 10px; }
@@ -31,21 +32,28 @@
       display:flex; align-items:center; justify-content:center;
     }
     .edit-dialog {
-      background:#fff; border-radius:13px; box-shadow:0 7px 36px #0004; padding:19px 32px 16px 32px; min-width:320px;
-      display:flex; flex-direction:column; gap:7px; position:relative;
-      animation: popupIn .14s;
+      background:#fff; border-radius:13px; box-shadow:0 7px 36px #0004; min-width:320px;
+      max-width:900px; width:80vw; display:flex; flex-direction:column; gap:7px; position:relative;
+      animation: popupIn .14s; padding:19px 32px 16px 32px;
     }
     @keyframes popupIn { from {transform:scale(0.93); opacity:0.1;} to{transform:scale(1);opacity:1;} }
-    .edit-dialog label { font-size:1em; color:#126;}
-    .edit-dialog input, .edit-dialog select, .edit-dialog textarea { font-size:1em; margin-top:2px; border-radius:6px; border:1px solid #b7cee7; padding:6px 8px; }
+    .edit-dialog label { font-size:1em; color:#126; display:block; margin-bottom:3px;}
+    .edit-dialog input, .edit-dialog select, .edit-dialog textarea { font-size:1em; margin-top:2px; border-radius:6px; border:1px solid #b7cee7; padding:6px 8px; box-sizing:border-box; }
+    .edit-dialog-fields { display: flex; flex-wrap: wrap; gap: 18px 26px; }
+    .edit-dialog-fields label { flex: 1 1 260px; min-width:220px; }
     .edit-dialog-actions { margin-top:7px; text-align:right;}
     .edit-dialog .close-x { position:absolute; right:11px; top:10px; background:none; border:none; font-size:1.2em; color:#888; cursor:pointer;}
     .edit-dialog .close-x:hover { color:#b00;}
+    .edit-dialog textarea { width:100%; min-height:4em; resize:vertical; }
+    @media (max-width: 700px) {
+      .edit-dialog { width:98vw; padding:10px 3vw 10px 3vw; }
+      .edit-dialog-fields { gap: 10px 6px; }
+    }
   </style>
 </head>
 <body>
   <div id="wrapper">
-    <h2>Ideenbank <span class="small">(Editieren & Priorität)</span></h2>
+    <h2>Ideenbank <span class="small">(Sortiericons & Edit-Dialog optimiert)</span></h2>
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:120px;">
       <select id="kategorie" style="width:112px;"></select>
@@ -69,13 +77,13 @@
     <table id="ideenTabelle">
       <thead>
         <tr>
-          <th onclick="sortTable('nr')">#<span id="arrow-nr" class="sort-arrow"></span></th>
-          <th onclick="sortTable('titel')">Titel<span id="arrow-titel" class="sort-arrow"></span></th>
-          <th onclick="sortTable('kategorie')">Kategorie<span id="arrow-kategorie" class="sort-arrow"></span></th>
-          <th onclick="sortTable('status')">Status<span id="arrow-status" class="sort-arrow"></span></th>
-          <th onclick="sortTable('prio')">Prio<span id="arrow-prio" class="sort-arrow"></span></th>
-          <th onclick="sortTable('datum')">Datum<span id="arrow-datum" class="sort-arrow"></span></th>
-          <th onclick="sortTable('beschreibung')">Beschreibung<span id="arrow-beschreibung" class="sort-arrow"></span></th>
+          <th onclick="sortTable('nr')">#<span id="arrow-nr" class="sort-arrow">&#8597;</span></th>
+          <th onclick="sortTable('titel')">Titel<span id="arrow-titel" class="sort-arrow">&#8597;</span></th>
+          <th onclick="sortTable('kategorie')">Kategorie<span id="arrow-kategorie" class="sort-arrow">&#8597;</span></th>
+          <th onclick="sortTable('status')">Status<span id="arrow-status" class="sort-arrow">&#8597;</span></th>
+          <th onclick="sortTable('prio')">Prio<span id="arrow-prio" class="sort-arrow">&#8597;</span></th>
+          <th onclick="sortTable('datum')">Datum<span id="arrow-datum" class="sort-arrow">&#8597;</span></th>
+          <th onclick="sortTable('beschreibung')">Beschreibung<span id="arrow-beschreibung" class="sort-arrow">&#8597;</span></th>
           <th></th>
         </tr>
       </thead>
@@ -90,27 +98,29 @@
     <div class="edit-dialog">
       <button class="close-x" onclick="closeEditDialog()">&times;</button>
       <h3>Idee bearbeiten</h3>
-      <form id="editForm">
-        <label>Titel: <input id="editTitel"></label>
-        <label>Kategorie:
-          <select id="editKategorie"></select>
-        </label>
-        <label>Status:
-          <select id="editStatus"></select>
-        </label>
-        <label>Prio:
-          <select id="editPrio">
-            <option value="hoch" class="prio-hoch">hoch ★</option>
-            <option value="mittel" class="prio-mittel">mittel</option>
-            <option value="niedrig" class="prio-niedrig">niedrig</option>
-          </select>
-        </label>
-        <label>Datum: <input id="editDatum" type="date"></label>
+      <form id="editForm" onsubmit="saveEditDialog(); return false;">
+        <div class="edit-dialog-fields">
+          <label>Titel: <input id="editTitel"></label>
+          <label>Kategorie:
+            <select id="editKategorie"></select>
+          </label>
+          <label>Status:
+            <select id="editStatus"></select>
+          </label>
+          <label>Prio:
+            <select id="editPrio">
+              <option value="hoch" class="prio-hoch">hoch ★</option>
+              <option value="mittel" class="prio-mittel">mittel</option>
+              <option value="niedrig" class="prio-niedrig">niedrig</option>
+            </select>
+          </label>
+          <label>Datum: <input id="editDatum" type="date"></label>
+        </div>
         <label>Beschreibung:<br>
-          <textarea id="editBeschreibung" rows="2"></textarea>
+          <textarea id="editBeschreibung" rows="4"></textarea>
         </label>
         <div class="edit-dialog-actions">
-          <button type="button" class="btn" onclick="saveEditDialog()">Speichern</button>
+          <button type="submit" class="btn">Speichern</button>
           <button type="button" class="btn" onclick="closeEditDialog()">Abbrechen</button>
         </div>
       </form>
@@ -125,7 +135,6 @@
     let sortAsc = false; // Prio absteigend (hoch zuerst)
     let editIdx = null; // Aktuell bearbeitete Idee
 
-    // --- Import/Upgrade für alte JSON ohne prio ---
     document.getElementById('importFile').onchange = function(e) {
       let file = e.target.files[0];
       if (!file) return;
@@ -209,13 +218,14 @@
           </td>
         </tr>`;
       });
-      // Sortier-Pfeile setzen
+      // Sortier-Pfeile immer sichtbar
       let allCols = ["nr","titel","kategorie","status","prio","datum","beschreibung"];
       allCols.forEach(col=>{
         let el = document.getElementById("arrow-"+col);
         if(!el) return;
-        if(col===sortColumn) el.innerHTML = sortAsc ? "▲" : "▼";
-        else el.innerHTML = "";
+        el.classList.remove("active");
+        if(col===sortColumn) { el.innerHTML = sortAsc ? "▲" : "▼"; el.classList.add("active"); }
+        else { el.innerHTML = "&#8597;"; }
       });
     }
 
