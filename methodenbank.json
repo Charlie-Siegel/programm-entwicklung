@@ -1,0 +1,15 @@
+{
+  "class": "Methodenbank",
+  "description": "Sammlung wiederverwendbarer Methoden für 5GL-Bausteine.",
+  "methods": [
+    {
+      "name": "addChild",
+      "parameters": ["childNode"],
+      "returns": "void",
+      "description": "Fügt einen Unterknoten (childNode) in das children-Array ein.",
+      "code": "if (!this.children) this.children = []; this.children.push(childNode);",
+      "status": "getestet"
+    }
+    // Hier kommen später weitere Methoden als weitere Objekte hinein
+  ]
+}
