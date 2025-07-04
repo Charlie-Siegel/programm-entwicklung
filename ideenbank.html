@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Ideenbank (Import, Sortiericons, Einzel-Löschen)</title>
+  <title>Ideenbank (Import wie echte Tabelle, Preview, Edit/Löschen direkt)</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
     #wrapper { max-width: 1100px; margin: 18px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 16px 22px 24px 22px; }
@@ -52,7 +52,7 @@
 </head>
 <body>
   <div id="wrapper">
-    <h2>Ideenbank <span class="small">(Import, Sortiericons, Einzel-Löschen)</span></h2>
+    <h2>Ideenbank <span class="small">(Import: Vorschau, Edit, Löschen direkt!)</span></h2>
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:120px;">
       <select id="kategorie" style="width:112px;"></select>
@@ -92,6 +92,7 @@
     <div class="small">
       Prio: <span class="prio-hoch">hoch</span> | <span class="prio-mittel">mittel</span> | <span class="prio-niedrig">niedrig</span>
     </div>
+    <div id="importBtnBar" style="margin-top:7px;"></div>
   </div>
 
   <div id="editDialogBG" class="edit-dialog-bg" style="display:none;">
@@ -132,9 +133,10 @@
     let kategorien = ["Tool", "Export", "Organisation"];
     let stati = ["offen", "in Arbeit", "erledigt", "wichtig"];
     let sortColumn = 'prio';
-    let sortAsc = false; // Prio absteigend (hoch zuerst)
-    let editIdx = null; // Aktuell bearbeitete Idee
-    let importBuffer = []; // Für importierte Ideen
+    let sortAsc = false;
+    let editIdx = null;
+    let importBuffer = [];
+    let importedIDs = [];
 
     document.getElementById('importFile').onchange = function(e) {
       let file = e.target.files[0];
@@ -148,11 +150,12 @@
           importBuffer = data.ideen.filter(imp =>
             !ideen.some(existing => existing.id === imp.id || (existing.titel === imp.titel && existing.beschreibung === imp.beschreibung))
           ).map(i=>({...i,importiert:true}));
+          importedIDs = importBuffer.map(i=>String(i.id));
           kategorien = Array.isArray(data.kategorien) ? data.kategorien : kategorien;
           stati = Array.isArray(data.stati) ? data.stati : stati;
           renderDropdowns();
           renderTabelle();
-          renderImportPreview();
+          renderImportBtnBar();
         } catch (err) {
           alert("Fehler beim Import:\n" + err.message);
         }
@@ -220,10 +223,8 @@
           <td>${idee.datum || ""}</td>
           <td>${idee.beschreibung}</td>
           <td>
-            ${isImported
-              ? `<button class="btn" onclick="deleteImportIdee(${idx})">🗑️</button>`
-              : `<button class="btn edit-btn" title="Bearbeiten" onclick="openEditDialog(${ideen.indexOf(idee)})">✏️</button>
-                 <button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button>`}
+            <button class="btn edit-btn" title="Bearbeiten" onclick="${isImported ? `openEditDialogImported('${idee.id}')` : `openEditDialog(${ideen.indexOf(idee)})`}">✏️</button>
+            <button class="btn" onclick="${isImported ? `deleteImportIdee('${idee.id}')` : `deleteIdee(${idee.id})`}">🗑️</button>
           </td>
         </tr>`;
       });
@@ -238,18 +239,14 @@
       });
     }
 
-    function renderImportPreview() {
-      let d = document.getElementById("importPreview");
+    function renderImportBtnBar() {
+      let d = document.getElementById("importBtnBar");
       if(!importBuffer.length) { d.innerHTML = ""; return; }
       d.innerHTML = `
         <div class="import-hinweis">
-          <b>Importierte Ideen-Vorschau (${importBuffer.length}):</b>
-          <ul>
-            ${importBuffer.map(i=>`<li>${i.titel} (${i.prio})</li>`).join("")}
-          </ul>
-          <button class="btn" onclick="acceptImport()">Übernehmen</button>
-          <button class="btn" onclick="cancelImport()">Verwerfen</button>
-          <span class="small" style="float:right;">Einzelne Ideen kannst du unten direkt löschen.</span>
+          <b>${importBuffer.length} importierte (gelbe) Ideen – prüfen, bearbeiten oder löschen!</b>
+          <button class="btn" onclick="acceptImport()">Alle übernehmen</button>
+          <button class="btn" onclick="cancelImport()">Alle verwerfen</button>
         </div>
       `;
     }
@@ -259,25 +256,82 @@
         ideen.push(kopie);
       });
       importBuffer = [];
+      importedIDs = [];
       renderTabelle();
-      renderImportPreview();
+      renderImportBtnBar();
       autosave();
     }
     function cancelImport() {
       importBuffer = [];
+      importedIDs = [];
       renderTabelle();
-      renderImportPreview();
+      renderImportBtnBar();
     }
-    function deleteImportIdee(idx) {
-      // idx: Position in data = ideen.concat(importBuffer)
-      // Wir filtern NUR in importBuffer!
-      let data = ideen.concat(importBuffer);
-      let idee = data[idx];
-      if (!idee.importiert) return;
-      let impIdx = importBuffer.findIndex(i=>i===idee);
-      if(impIdx>=0) importBuffer.splice(impIdx,1);
+    function deleteImportIdee(id) {
+      let idx = importBuffer.findIndex(i=>String(i.id)===String(id));
+      if(idx>=0) importBuffer.splice(idx,1);
       renderTabelle();
-      renderImportPreview();
+      renderImportBtnBar();
+    }
+
+    function openEditDialogImported(id) {
+      let idx = importBuffer.findIndex(i=>String(i.id)===String(id));
+      if(idx<0) return;
+      editIdx = idx;
+      let idee = importBuffer[idx];
+      document.getElementById("editTitel").value = idee.titel || "";
+      let selKat = document.getElementById("editKategorie");
+      selKat.innerHTML = "";
+      kategorien.forEach(k => selKat.innerHTML += `<option ${idee.kategorie===k?'selected':''}>${k}</option>`);
+      let selStat = document.getElementById("editStatus");
+      selStat.innerHTML = "";
+      stati.forEach(s => selStat.innerHTML += `<option ${idee.status===s?'selected':''}>${s}</option>`);
+      document.getElementById("editPrio").value = idee.prio || "mittel";
+      document.getElementById("editDatum").value = idee.datum || "";
+      document.getElementById("editBeschreibung").value = idee.beschreibung || "";
+      document.getElementById("editDialogBG").style.display = "flex";
+      // Save import-edit-state
+      window.editingImported = true;
+    }
+    function openEditDialog(idx) {
+      editIdx = idx;
+      let idee = ideen[idx];
+      document.getElementById("editTitel").value = idee.titel || "";
+      let selKat = document.getElementById("editKategorie");
+      selKat.innerHTML = "";
+      kategorien.forEach(k => selKat.innerHTML += `<option ${idee.kategorie===k?'selected':''}>${k}</option>`);
+      let selStat = document.getElementById("editStatus");
+      selStat.innerHTML = "";
+      stati.forEach(s => selStat.innerHTML += `<option ${idee.status===s?'selected':''}>${s}</option>`);
+      document.getElementById("editPrio").value = idee.prio || "mittel";
+      document.getElementById("editDatum").value = idee.datum || "";
+      document.getElementById("editBeschreibung").value = idee.beschreibung || "";
+      document.getElementById("editDialogBG").style.display = "flex";
+      window.editingImported = false;
+    }
+    function closeEditDialog() {
+      document.getElementById("editDialogBG").style.display = "none";
+      editIdx = null;
+      window.editingImported = false;
+    }
+    function saveEditDialog() {
+      let idx = editIdx;
+      if (idx===null) return;
+      let idee;
+      if(window.editingImported){
+        idee = importBuffer[idx];
+      }else{
+        idee = ideen[idx];
+      }
+      idee.titel = document.getElementById("editTitel").value.trim();
+      idee.kategorie = document.getElementById("editKategorie").value;
+      idee.status = document.getElementById("editStatus").value;
+      idee.prio = document.getElementById("editPrio").value;
+      idee.datum = document.getElementById("editDatum").value;
+      idee.beschreibung = document.getElementById("editBeschreibung").value.trim();
+      closeEditDialog();
+      renderTabelle();
+      autosave();
     }
 
     function addIdee() {
@@ -299,41 +353,6 @@
     function deleteIdee(id) {
       if (!confirm("Idee wirklich löschen?")) return;
       ideen = ideen.filter(i => i.id !== id);
-      renderTabelle();
-      autosave();
-    }
-
-    // Editieren
-    function openEditDialog(idx) {
-      editIdx = idx;
-      let idee = ideen[idx];
-      document.getElementById("editTitel").value = idee.titel || "";
-      let selKat = document.getElementById("editKategorie");
-      selKat.innerHTML = "";
-      kategorien.forEach(k => selKat.innerHTML += `<option ${idee.kategorie===k?'selected':''}>${k}</option>`);
-      let selStat = document.getElementById("editStatus");
-      selStat.innerHTML = "";
-      stati.forEach(s => selStat.innerHTML += `<option ${idee.status===s?'selected':''}>${s}</option>`);
-      document.getElementById("editPrio").value = idee.prio || "mittel";
-      document.getElementById("editDatum").value = idee.datum || "";
-      document.getElementById("editBeschreibung").value = idee.beschreibung || "";
-      document.getElementById("editDialogBG").style.display = "flex";
-    }
-    function closeEditDialog() {
-      document.getElementById("editDialogBG").style.display = "none";
-      editIdx = null;
-    }
-    function saveEditDialog() {
-      let idx = editIdx;
-      if (idx===null) return;
-      let idee = ideen[idx];
-      idee.titel = document.getElementById("editTitel").value.trim();
-      idee.kategorie = document.getElementById("editKategorie").value;
-      idee.status = document.getElementById("editStatus").value;
-      idee.prio = document.getElementById("editPrio").value;
-      idee.datum = document.getElementById("editDatum").value;
-      idee.beschreibung = document.getElementById("editBeschreibung").value.trim();
-      closeEditDialog();
       renderTabelle();
       autosave();
     }
