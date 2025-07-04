@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON-Klassenbeschreibung anzeigen</title>
+  <style>
+    body { font-family: sans-serif; background: #f6faff; margin: 0; }
+    #wrapper { max-width: 800px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0002; padding: 28px 30px; }
+    h2 { color: #0287c2; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #e0e5ee; padding: 7px 10px; }
+    th { background: #e6f2ff; }
+    .card { margin:18px 0; padding:15px 20px; border-radius:8px; background:#f3f8fc; border: 1.5px solid #c4e0fb;}
+    .methodname { font-weight:bold; color:#1366a2;}
+    .type { color:#008872; font-size:0.97em; }
+    #selectFile { margin-bottom: 18px;}
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <h2>JSON-Klassenbeschreibung anzeigen</h2>
+    <input type="file" id="selectFile" accept=".json">
+    <div id="jsonView"></div>
+  </div>
+  <script>
+    document.getElementById('selectFile').onchange = function(e) {
+      let file = e.target.files[0];
+      if (!file) return;
+      let reader = new FileReader();
+      reader.onload = function(evt) {
+        let data = JSON.parse(evt.target.result);
+        showJsonClass(data);
+      };
+      reader.readAsText(file);
+    };
+
+    function showJsonClass(data) {
+      let html = `<div class="card"><b>Klasse:</b> ${data.class || ''}<br>
+                  <b>Beschreibung:</b> ${data.description || ''}</div>`;
+
+      // Eigenschaften
+      if (data.properties && data.properties.length) {
+        html += "<h3>Eigenschaften</h3><table><tr><th>Name</th><th>Typ</th><th>Beschreibung</th></tr>";
+        data.properties.forEach(p =>
+          html += `<tr>
+            <td><b>${p.name}</b></td>
+            <td class="type">${p.type}</td>
+            <td>${p.description}</td>
+          </tr>`
+        );
+        html += "</table>";
+      }
+
+      // Methoden
+      if (data.methods && data.methods.length) {
+        html += "<h3>Methoden</h3>";
+        data.methods.forEach(m =>
+          html += `<div class="card">
+            <span class="methodname">${m.name}(${(m.parameters||[]).join(', ')})</span>
+            <span class="type">→ ${m.returns || '-'}</span><br>
+            <i>${m.description || ''}</i>
+          </div>`
+        );
+      }
+      document.getElementById("jsonView").innerHTML = html;
+    }
+  </script>
+</body>
+</html>
