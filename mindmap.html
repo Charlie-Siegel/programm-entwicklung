@@ -2,20 +2,18 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>5GL Mindmap – Einzelne Box (Touch-optimiert)</title>
+  <title>5GL Mindmap – Multi-Knoten (Stand: 09.07.2024, 08:25 Uhr MEZ)</title>
   <style>
     #canvas {
-      width: 100vw; height: 85vh;
+      width: 100vw; height: 84vh;
       background: #eef6fa;
       position:relative; overflow: hidden;
-      /* Touch: blockiere Scrollen während Drag */
-      touch-action: none;
-      -webkit-user-select: none;
+      touch-action: none; -webkit-user-select: none;
     }
     .node {
       position: absolute;
-      min-width: 160px; max-width: 240px;
-      padding: 20px 20px 16px 20px;
+      min-width: 150px; max-width: 220px;
+      padding: 16px 18px 12px 18px;
       border-radius: 16px;
       background: #fff;
       box-shadow: 0 2px 8px #0002;
@@ -23,85 +21,33 @@
       text-align: center;
       user-select: none;
       border: 2px solid #78befa;
-      font-weight: bold; font-size: 1.1em;
+      font-weight: bold; font-size: 1em;
       transition: box-shadow 0.1s;
-      top: 100px; left: 150px;
-      /* Mobile/Tablet-Performance */
       will-change: left, top, transform;
+      z-index: 1;
     }
-    #header { margin: 0; padding: 14px 30px; font-size: 1.35em; color: #0287c2; letter-spacing: 1px; }
+    .toolbar { padding: 9px 20px; background: #eee; }
+    .btn { font-size:1em; background:none; border:none; cursor:pointer; padding:1px 6px; }
+    .btn:active { background:#e5e5e5; border-radius:6px; }
+    .node.selected { border-color: #ff7b00; box-shadow: 0 0 8px #ffa50077; }
+    .comment { font-size:0.9em; color:#2681c0; margin-top:6px; white-space:pre-line;}
+    .node-form {
+      position: fixed;
+      left: 32vw; top: 18vh;
+      background: #fff;
+      border: 2px solid #aaa;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px #0004;
+      padding: 16px;
+      z-index: 9999;
+      min-width: 220px;
+    }
+    .node-form input, .node-form textarea { width: 96%; margin-bottom: 6px; }
+    .node-form label { display:block; font-size:0.95em; margin-bottom:3px; }
+    .node-form .actions { text-align:right; }
+    .node-form .actions button { margin-left:10px; }
+    #header { margin: 0; padding: 14px 30px; font-size: 1.22em; color: #0287c2; letter-spacing: 1px;}
   </style>
 </head>
 <body>
-  <h2 id="header">5GL Mindmap – Stand: 08.07.2024, 18:57 Uhr (EU)</h2>
-  <div id="canvas"></div>
-  <script>
-    let node = {
-      title: "Mein erster Knoten (ziehen: Maus oder Finger)",
-      x: 200, y: 120
-    };
-
-    function render() {
-      const canvas = document.getElementById('canvas');
-      canvas.innerHTML = '';
-      let div = document.createElement("div");
-      div.className = "node";
-      div.textContent = node.title;
-      div.style.left = node.x + "px";
-      div.style.top = node.y + "px";
-      canvas.appendChild(div);
-
-      // Desktop Drag & Drop
-      let dragging = false, offsetX = 0, offsetY = 0;
-      div.onmousedown = function(e) {
-        dragging = true;
-        offsetX = e.clientX - node.x;
-        offsetY = e.clientY - node.y;
-        div.style.boxShadow = "0 0 16px #00bcd47c";
-        document.onmousemove = function(e) {
-          if (dragging) {
-            node.x = e.clientX - offsetX;
-            node.y = e.clientY - offsetY;
-            div.style.left = node.x + "px";
-            div.style.top = node.y + "px";
-          }
-        };
-        document.onmouseup = function() {
-          dragging = false;
-          div.style.boxShadow = "";
-          document.onmousemove = null;
-          document.onmouseup = null;
-        };
-      };
-
-      // Touch Drag & Drop
-      div.ontouchstart = function(e) {
-        let touch = e.touches[0];
-        dragging = true;
-        offsetX = touch.clientX - node.x;
-        offsetY = touch.clientY - node.y;
-        div.style.boxShadow = "0 0 16px #00bcd47c";
-        e.preventDefault();
-        document.ontouchmove = function(e) {
-          if (dragging) {
-            let t = e.touches[0];
-            node.x = t.clientX - offsetX;
-            node.y = t.clientY - offsetY;
-            div.style.left = node.x + "px";
-            div.style.top = node.y + "px";
-            e.preventDefault();
-          }
-        };
-        document.ontouchend = function() {
-          dragging = false;
-          div.style.boxShadow = "";
-          document.ontouchmove = null;
-          document.ontouchend = null;
-        };
-      };
-    }
-
-    render();
-  </script>
-</body>
-</html>
+  <h2
