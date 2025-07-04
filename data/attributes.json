@@ -1,0 +1,32 @@
+[
+  {
+    "name": "id",
+    "type": "String",
+    "description": "Eindeutige Kennung des Objekts",
+    "status": "approved"
+  },
+  {
+    "name": "x",
+    "type": "Number",
+    "description": "Horizontale Position",
+    "status": "approved"
+  },
+  {
+    "name": "y",
+    "type": "Number",
+    "description": "Vertikale Position",
+    "status": "approved"
+  },
+  {
+    "name": "rotation",
+    "type": "Number",
+    "description": "Drehwinkel in Grad",
+    "status": "approved"
+  },
+  {
+    "name": "scale",
+    "type": "Number",
+    "description": "Skalierungsfaktor",
+    "status": "approved"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "onClick",
+    "module": "handleClick",
+    "description": "Reaktion auf Klick",
+    "status": "approved"
+  },
+  {
+    "name": "onHover",
+    "module": "handleHover",
+    "description": "Reaktion beim Überfahren",
+    "status": "approved"
+  },
+  {
+    "name": "onDrag",
+    "module": "handleDrag",
+    "description": "Reaktion beim Ziehen",
+    "status": "approved"
+  }
+]

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Klassen-Definition (Auswahlbasiert)</title>
+<style>
+  body { font-family: sans-serif; margin: 20px; }
+  .section { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; }
+  .section h3 { margin-top: 0; }
+  .list { background: #f9f9f9; padding: 5px; }
+  pre { background: #eee; padding: 10px; }
+</style>
+</head>
+<body>
+
+<h2>Klassen-Definition (Nur Auswahl)</h2>
+
+<div class="section">
+  <h3>1️⃣ Klasseninfo</h3>
+  <label>Name der Klasse:</label><br>
+  <input type="text" id="className"><br>
+  <label>Beschreibung:</label><br>
+  <input type="text" id="classDescription"><br>
+</div>
+
+<div class="section" id="attributesSection">
+  <h3>2️⃣ Attribute auswählen</h3>
+  <div id="attributesList"></div>
+</div>
+
+<div class="section" id="methodsSection">
+  <h3>3️⃣ Methoden auswählen</h3>
+  <div id="methodsList"></div>
+</div>
+
+<div class="section" id="eventsSection">
+  <h3>4️⃣ Events auswählen</h3>
+  <div id="eventsList"></div>
+</div>
+
+<div class="section">
+  <h3>5️⃣ Metadaten</h3>
+  <label>Version:</label><br>
+  <input type="text" id="metaVersion" value="1.0"><br>
+  <label>Status:</label><br>
+  <select id="metaStatus">
+    <option value="approved">approved</option>
+    <option value="draft">draft</option>
+    <option value="deprecated">deprecated</option>
+  </select><br>
+  <label>Tags (kommagetrennt):</label><br>
+  <input type="text" id="metaTags"><br>
+</div>
+
+<button onclick="generateJSON()">📄 JSON anzeigen</button>
+
+<h3>JSON Vorschau</h3>
+<pre id="output"></pre>
+
+<script>
+let masterAttributes = [];
+let masterMethods = [];
+let masterEvents = [];
+
+async function loadMasterData() {
+  const [attrRes, methRes, evRes] = await Promise.all([
+    fetch('./data/attributes.json'),
+    fetch('./data/methods.json'),
+    fetch('./data/events.json')
+  ]);
+  masterAttributes = (await attrRes.json()).filter(a => a.status === 'approved');
+  masterMethods = (await methRes.json()).filter(m => m.status === 'approved');
+  masterEvents = (await evRes.json()).filter(e => e.status === 'approved');
+  renderLists();
+}
+
+function renderLists() {
+  // Attributes
+  const attrDiv = document.getElementById('attributesList');
+  attrDiv.innerHTML = masterAttributes.map((a, i) => `
+    <label><input type="checkbox" id="attr_${i}"> ${a.name} (${a.type}) - ${a.description}</label><br>
+  `).join('');
+
+  // Methods
+  const methDiv = document.getElementById('methodsList');
+  methDiv.innerHTML = masterMethods.map((m, i) => `
+    <label><input type="checkbox" id="meth_${i}"> ${m.name}(${m.parameters.join(', ')}) - ${m.description}</label><br>
+  `).join('');
+
+  // Events
+  const evDiv = document.getElementById('eventsList');
+  evDiv.innerHTML = masterEvents.map((e, i) => `
+    <label><input type="checkbox" id="ev_${i}"> ${e.name} - ${e.description}</label><br>
+  `).join('');
+}
+
+function generateJSON() {
+  const className = document.getElementById('className').value;
+  const description = document.getElementById('classDescription').value;
+  const version = document.getElementById('metaVersion').value;
+  const status = document.getElementById('metaStatus').value;
+  const tags = document.getElementById('metaTags').value.split(',').map(t => t.trim()).filter(t => t);
+
+  const selectedAttributes = masterAttributes.filter((a, i) => document.getElementById(`attr_${i}`).checked);
+  const selectedMethods = masterMethods.filter((m, i) => document.getElementById(`meth_${i}`).checked);
+  const selectedEvents = masterEvents.filter((e, i) => document.getElementById(`ev_${i}`).checked);
+
+  const output = {
+    className: className,
+    description: description,
+    attributes: selectedAttributes,
+    methods: selectedMethods,
+    events: selectedEvents,
+    metadata: {
+      version: version,
+      status: status,
+      tags: tags
+    }
+  };
+
+  document.getElementById('output').textContent = JSON.stringify(output, null, 2);
+}
+
+loadMasterData();
+</script>
+
+</body>
+</html>
+
+
