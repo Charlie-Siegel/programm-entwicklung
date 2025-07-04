@@ -2,67 +2,33 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Mini-Mindmap (ohne Bibliothek)</title>
-  <style>
-    body { font-family: sans-serif; background: #f8fafc; margin: 0; }
-    #tree { padding: 20px; }
-    ul { list-style-type: none; }
-    .node {
-      margin: 3px 0;
-      padding: 6px 10px;
-      background: #e6f4ff;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-    }
-    .children { margin-left: 32px; }
-    .node input[type="text"] { width: 120px; }
-    .node textarea { width: 160px; height: 36px; }
-    .node button { margin-left: 6px; }
-  </style>
+  <title>Test-Mindmap</title>
 </head>
 <body>
-  <h2 style="padding-left:20px;">🧩 Mini-Mindmap: 5GL-Baustein-Sammlung</h2>
-  <div id="toolbar" style="padding-left:20px; margin-bottom:5px;">
-    <button onclick="downloadMap()">Mindmap speichern</button>
-    <button onclick="document.getElementById('fileInput').click()">Mindmap laden</button>
-    <input type="file" id="fileInput" style="display:none" accept=".json">
-  </div>
   <div id="tree"></div>
-
   <script>
-    // ----- Datenmodell -----
     let mindmap = {
-      id: Date.now(),
       title: "5GL-Baustein-Sammlung",
-      comment: "",
       children: [
-        { id: Date.now()+1, title: "Bausteinverwaltung", comment: "", children: [] },
-        { id: Date.now()+2, title: "Klassendesigner", comment: "", children: [] },
-        { id: Date.now()+3, title: "Logbuch", comment: "", children: [] },
-        { id: Date.now()+4, title: "Hilfedokumentation", comment: "", children: [] },
-        { id: Date.now()+5, title: "Vorschau & Simulation", comment: "", children: [] },
-        { id: Date.now()+6, title: "Dateiverwaltung", comment: "", children: [] },
-        { id: Date.now()+7, title: "User & Rollen (optional)", comment: "", children: [] },
-        { id: Date.now()+8, title: "Projektverwaltung/Doku", comment: "", children: [] }
+        { title: "Bausteinverwaltung", children: [] },
+        { title: "Klassendesigner", children: [] },
+        { title: "Logbuch", children: [] },
+        { title: "Hilfedokumentation", children: [] },
+        { title: "Vorschau & Simulation", children: [] },
+        { title: "Dateiverwaltung", children: [] },
+        { title: "User & Rollen (optional)", children: [] },
+        { title: "Projektverwaltung/Doku", children: [] }
       ]
     };
 
-    // ----- Rendering -----
-    function renderTree() {
-      document.getElementById('tree').innerHTML = renderNode(mindmap);
-      addNodeEventHandlers();
+    function render(node) {
+      let html = `<ul><li><b>${node.title}</b>`;
+      if (node.children && node.children.length)
+        html += node.children.map(render).join('');
+      html += "</li></ul>";
+      return html;
     }
-
-    function renderNode(node) {
-      let html = `<ul><li>
-        <div class="node" data-id="${node.id}">
-          <b>${escapeHTML(node.title)}</b>
-          <button class="editBtn">✏️</button>
-          <button class="addBtn">➕</button>
-          ${node !== mindmap ? '<button class="delBtn">🗑️</button>' : ''}
-        </div>
-        <div style="margin-left:12px; margin-bottom:2px; font-size:0.9em; color:#0070b8;">
-          ${node.comment ? escapeHTML(node.comment) : '<span style="color:#999;">(kein Kommentar)</span>'}
-        </div>
-        <div class="children">${(node.
+    document.getElementById('tree').innerHTML = render(mindmap);
+  </script>
+</body>
+</html>
