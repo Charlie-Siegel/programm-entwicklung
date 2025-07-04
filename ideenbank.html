@@ -3,10 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Ideenbank</title>
+  <!-- Ideenbank Version 1.5 | Build: 2024-07-10, 19:21 | Author: Charlie & ChatGPT -->
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
     #wrapper { max-width: 1100px; margin: 14px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 12px 20px 22px 20px; }
     h2 { color: #0287c2; margin-bottom: 5px;}
+    #appversion { margin:2px 0 10px 0; color:#778; font-size:0.97em; text-align:right; letter-spacing:0.5px;}
     table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
     th, td { border: 1px solid #e0e5ee; padding: 5px 8px; }
     th { background: #e6f2ff; cursor:pointer; user-select:none; font-weight:500; font-size:1em; }
@@ -50,6 +52,7 @@
 <body>
   <div id="wrapper">
     <h2>Ideenbank</h2>
+    <div id="appversion">Version: 1.5 &nbsp;|&nbsp; Build: 2024-07-10, 19:21</div>
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:120px;">
       <select id="kategorie" style="width:112px;"></select>
@@ -116,7 +119,6 @@
     let sortColumn = 'nr';
     let sortAsc = true;
 
-    // --- Uhrzeit/Datum anzeigen ---
     function showFixedClock() {
       let d = new Date();
       let dt = d.toLocaleDateString('de-DE', {weekday:'short', year:'numeric', month:'2-digit', day:'2-digit'});
@@ -382,7 +384,6 @@
       window.addEventListener("mouseup", up);
     }
 
-    // --- Autosave ---
     function autosave() {
       let cleanIdeen = ideen.map(i => {
         let o = {...i};
@@ -411,7 +412,6 @@
       renderTabelle();
     }
 
-    // --- Initialisierung ---
     autorestore();
     renderDropdowns();
     renderTabelle();
