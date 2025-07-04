@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>5GL Mindmap – Modular (Stand: 09.07.2024, 13:15 Uhr MESZ)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <style>
+    #canvas {
+      width: 100vw; height: 75vh;
+      background: #eef6fa;
+      position:relative; overflow: hidden;
+      touch-action: none; -webkit-user-select: none;
+    }
+    .node {
+      position: absolute;
+      min-width: 150px; max-width: 220px;
+      padding: 14px 15px 10px 15px;
+      border-radius: 15px;
+      background: #fff;
+      box-shadow: 0 2px 8px #0002;
+      cursor: move;
+      text-align: center;
+      user-select: none;
+      border: 2px solid #78befa;
+      font-weight: bold; font-size: 1em;
+      transition: box-shadow 0.1s;
+      will-change: left, top, transform;
+      z-index: 1;
+    }
+    .btn { font-size:1em; background:none; border:none; cursor:pointer; padding:2px 6px; }
+    .btn:active { background:#e5e5e5; border-radius:6px; }
+    #header { margin: 0; padding: 13px 28px; font-size: 1.10em; color: #0287c2; letter-spacing: 1px;}
+    .node-form {
+      position: fixed;
+      left: 32vw; top: 18vh;
+      background: #fff;
+      border: 2px solid #aaa;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px #0004;
+      padding: 14px;
+      z-index: 9999;
+      min-width: 220px;
+      font-size: 1em;
+    }
+    .node-form input, .node-form textarea { width: 96%; margin-bottom: 6px; }
+    .node-form label { display:block; font-size:0.97em; margin-bottom:2px; }
+    .node-form .actions { text-align:right; }
+    .node-form .actions button { margin-left:10px; }
+  </style>
+</head>
+<body>
+  <h2 id="header">5GL Mindmap – Modular, Stand: 09.07.2024, 13:15 Uhr (MESZ)</h2>
+  <div id="canvas"></div>
+  <div id="formContainer" style="display:none;"></div>
+  <script>
+    // --- Klasse MindmapKnoten ---
+    class MindmapKnoten {
+      constructor({id, title, x, y, comment = ""}) {
+        this.id = id;
+        this.title = title;
+        this.x = x;
+        this.y = y;
+        this.comment = comment;
+        this.div = null;
+      }
+
+      render(canvas, onEdit) {
+        // Knoten zeichnen
+        if (!this.div) {
+          this.div = document.createElement("div");
+          this.div.className = "node";
+          canvas.appendChild(this.div);
+        }
+        this.div.style.left = this.x + "px";
+        this.div.style.top = this.y + "px";
+        this.div.innerHTML = `
+          <span>${this.title}</span>
+          <button class="btn" id="editBtn${this.id}">✏️</button>
+        `;
+
+        // Button Handler (explizit für jedes Knotenobjekt)
+        let btn = document.getElementById('editBtn' + this.id);
+        btn.onclick = (e) => { this.editDialog(onEdit); e.stopPropagation(); };
+        btn.ontouchstart = (e) => { this.editDialog(onEdit); e.stopPropagation(); };
+
+        // Drag&Drop Desktop
+        let dragging = false, offsetX = 0, offsetY = 0;
+        this.div.onmousedown = (e) => {
+          if(e.target.tagName === "BUTTON") return;
+          dragging = true;
+          offsetX = e.clientX - this.x;
+          offsetY = e.clientY - this.y;
+          this.div.style.boxShadow = "0 0 16px #00bcd47c";
+          document.onmousemove = (e) => {
+            if (dragging) {
+              this.x = e.clientX - offsetX;
+              this.y = e.clientY - offsetY;
+              this.div.style.left = this.x + "px";
+              this.div.style.top = this.y + "px";
+            }
+          };
+          document.onmouseup = () => {
+            dragging = false;
+            this.div.style.boxShadow = "";
+            document.onmousemove = null;
+            document.onmouseup = null;
+          };
+        };
+
+        // Drag&Drop Touch
+        this.div.ontouchstart = (e) => {
+          if(e.target.tagName === "BUTTON") return;
+          let t = e.touches[0];
+          dragging = true;
+          offsetX = t.clientX - this.x;
+          offsetY = t.clientY - this.y;
+          this.div.style.boxShadow = "0 0 16px #00bcd47c";
+          e.preventDefault();
+          document.ontouchmove = (e) => {
+            if (dragging) {
+              let t = e.touches[0];
+              this.x = t.clientX - offsetX;
+              this.y = t.clientY - offsetY;
+              this.div.style.left = this.x + "px";
+              this.div.style.top = this.y + "px";
+              e.preventDefault();
+            }
+          };
+          document.ontouchend = () => {
+            dragging = false;
+            this.div.style.boxShadow = "";
+            document.ontouchmove = null;
+            document.ontouchend = null;
+          };
+        };
+      }
+
+      editDialog(onEdit) {
+        // Einfacher Dialog im Overlay
+        const formDiv = document.getElementById("formContainer");
+        formDiv.innerHTML = `
+          <form class="node-form" onsubmit="return false;">
+            <label>Knoten-Titel:</label>
+            <input type="text" id="nodeTitle" value="${this.title}" required>
+            <label>Kommentar/Notiz:</label>
+            <textarea id="nodeComment">${this.comment}</textarea>
+            <div class="actions">
+              <button onclick="hideForm()" type="button">Abbrechen</button>
+              <button id="saveBtn" type="button">Speichern</button>
+            </div>
+          </form>
+        `;
+        formDiv.style.display = "block";
+        document.getElementById("nodeTitle").focus();
+
+        document.getElementById("saveBtn").onclick = () => {
+          this.title = document.getElementById("nodeTitle").value;
+          this.comment = document.getElementById("nodeComment").value;
+          formDiv.style.display = "none";
+          formDiv.innerHTML = "";
+          if (onEdit) onEdit();
+        };
+      }
+    }
+
+    function hideForm() {
+      document.getElementById("formContainer").style.display = "none";
+      document.getElementById("formContainer").innerHTML = "";
+    }
+
+    // --- Test-Setup: Ein Knoten! ---
+    const canvas = document.getElementById('canvas');
+    let knoten1 = new MindmapKnoten({id: 1, title: "Bearbeite oder zieh mich!", x: 240, y: 90, comment: "Das ist ein Testknoten."});
+    knoten1.render(canvas, ()=>knoten1.render(canvas));
+
+    // => Später: Array von Knoten, Mindmap-Manager usw.
+  </script>
+</body>
+</html>
