@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Mindmap mit Drag&Drop – 5GL-Baustein-Sammlung</title>
+  <title>Robuste Mindmap (überall bedienbar)</title>
   <style>
     body { margin:0; background: #f7fafc; font-family:sans-serif;}
     #canvas { width: 100vw; height: 92vh; background: #eef6fa; position:relative; overflow: hidden; }
@@ -30,13 +30,14 @@
     .btn:active { background: #e5e5e5; border-radius: 6px; }
     .comment { font-size:0.9em; color:#2681c0; margin-top:6px; white-space:pre-line;}
     .node-form {
-      position: absolute;
+      position: fixed;
+      left: 30vw; top: 18vh;
       background: #fff;
       border: 2px solid #aaa;
       border-radius: 10px;
       box-shadow: 0 2px 12px #0004;
       padding: 16px;
-      z-index: 10;
+      z-index: 9999;
       min-width: 200px;
     }
     .node-form input, .node-form textarea { width: 96%; margin-bottom: 6px; }
@@ -47,7 +48,7 @@
 </head>
 <body>
   <div class="toolbar">
-    <button onclick="addRootNode()">➕ Hauptknoten hinzufügen</button>
+    <button id="addRootBtn">➕ Hauptknoten hinzufügen</button>
     <button onclick="downloadMap()">💾 Speichern</button>
     <button onclick="document.getElementById('fileInput').click()">📂 Laden</button>
     <input type="file" id="fileInput" style="display:none" accept=".json">
@@ -58,8 +59,8 @@
     let mindmap = {
       nodes: [
         {id: 1, title: "5GL-Baustein-Sammlung", x: 400, y: 180, comment:"", parent: null},
-        {id: 2, title: "Bausteinverwaltung", x: 170, y: 80, comment:"", parent: 1},
-        {id: 3, title: "Klassendesigner", x: 630, y: 80, comment:"", parent: 1},
+        {id: 2, title: "Bausteinverwaltung", x: 170, y: 80, comment: "", parent: 1},
+        {id: 3, title: "Klassendesigner", x: 630, y: 80, comment: "", parent: 1},
         {id: 4, title: "Logbuch", x: 100, y: 260, comment: "", parent: 1},
         {id: 5, title: "Hilfedokumentation", x: 700, y: 260, comment: "", parent: 1},
         {id: 6, title: "Vorschau & Simulation", x: 200, y: 380, comment: "", parent: 1},
@@ -71,10 +72,11 @@
     let nodeId = 10;
     let dragNode = null, offsetX = 0, offsetY = 0;
 
+    // ---- RENDER ----
     function render() {
       const canvas = document.getElementById('canvas');
       canvas.innerHTML = "";
-      // SVG-Linien
+      // Linien
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.style.position = "absolute";
       svg.style.top = "0";
@@ -106,30 +108,75 @@
         div.className = "node";
         div.style.left = n.x + "px";
         div.style.top = n.y + "px";
+        div.setAttribute("data-id", n.id);
         div.innerHTML = `
           <span>${escapeHTML(n.title)}</span>
-          <button class="btn" onclick="showNodeForm(${n.id});event.stopPropagation();">✏️</button>
-          ${n.id !== 1 ? `<button class="btn" onclick="deleteNode(${n.id});event.stopPropagation();">🗑️</button>` : ""}
-          <button class="btn" onclick="addChildNode(${n.id});event.stopPropagation();">➕</button>
+          <button class="btn edit-btn" data-id="${n.id}" title="Bearbeiten">✏️</button>
+          ${n.id !== 1 ? `<button class="btn del-btn" data-id="${n.id}" title="Löschen">🗑️</button>` : ""}
+          <button class="btn add-btn" data-id="${n.id}" title="Unterknoten">➕</button>
           <div class="comment">${n.comment ? escapeHTML(n.comment) : "<span style='color:#bbb;'>(kein Kommentar)</span>"}</div>
         `;
-        div.onmousedown = e => {
-          if(e.target.tagName==="BUTTON" || document.getElementById("formContainer").style.display==="block") return;
-          dragNode = n;
-          offsetX = e.offsetX;
-          offsetY = e.offsetY;
-          div.classList.add("selected");
-        };
-        div.onmouseup = e => { dragNode = null; div.classList.remove("selected"); };
         canvas.appendChild(div);
       });
     }
 
+    // ---- EVENTS ----
+    // Delegation: canvas fängt alle Button-Klicks ab!
+    document.getElementById('canvas').addEventListener('click', function(e) {
+      let btn = e.target;
+      if (!btn.classList) return;
+      const id = Number(btn.getAttribute('data-id'));
+      if (btn.classList.contains('edit-btn')) return showEditForm(id);
+      if (btn.classList.contains('del-btn')) return deleteNode(id);
+      if (btn.classList.contains('add-btn')) return showNodeForm(id, false);
+    });
+
+    // Drag&Drop Desktop
+    document.getElementById('canvas').addEventListener('mousedown', function(e) {
+      let div = e.target.closest('.node');
+      if (!div || e.target.tagName==="BUTTON" || formOpen()) return;
+      let id = Number(div.getAttribute('data-id'));
+      let n = mindmap.nodes.find(nn=>nn.id===id);
+      dragNode = n;
+      offsetX = e.offsetX;
+      offsetY = e.offsetY;
+      div.classList.add("selected");
+    });
+    document.body.addEventListener('mousemove', function(e) {
+      if (!dragNode || formOpen()) return;
+      dragNode.x = e.clientX - offsetX;
+      dragNode.y = e.clientY - offsetY - document.querySelector(".toolbar").offsetHeight;
+      render();
+    });
+    document.body.addEventListener('mouseup', function() {
+      dragNode = null; render();
+    });
+    // Drag&Drop Touch (iPad etc.)
+    document.getElementById('canvas').addEventListener('touchstart', function(e) {
+      let div = e.target.closest('.node');
+      if (!div || e.target.tagName==="BUTTON" || formOpen()) return;
+      let id = Number(div.getAttribute('data-id'));
+      let n = mindmap.nodes.find(nn=>nn.id===id);
+      dragNode = n;
+      let touch = e.touches[0];
+      offsetX = touch.clientX - n.x;
+      offsetY = touch.clientY - n.y - document.querySelector(".toolbar").offsetHeight;
+      div.classList.add("selected");
+    }, {passive:false});
+    document.getElementById('canvas').addEventListener('touchmove', function(e) {
+      if (!dragNode || formOpen()) return;
+      let touch = e.touches[0];
+      dragNode.x = touch.clientX - offsetX;
+      dragNode.y = touch.clientY - offsetY;
+      render();
+    }, {passive:false});
+    document.getElementById('canvas').addEventListener('touchend', function() {
+      dragNode = null; render();
+    });
+
+    // ---- FORMULAR ----
     function addRootNode() {
       showNodeForm(null, true);
-    }
-    function addChildNode(parentId) {
-      showNodeForm(parentId, false);
     }
     function showNodeForm(parentId, isRoot) {
       const formDiv = document.getElementById("formContainer");
@@ -146,8 +193,6 @@
         </form>
       `;
       formDiv.style.display = "block";
-      formDiv.style.left = "35vw";
-      formDiv.style.top = "18vh";
       document.getElementById("nodeTitle").focus();
     }
     function submitForm(parentId, isRoot) {
@@ -170,7 +215,7 @@
       document.getElementById("formContainer").style.display = "none";
       document.getElementById("formContainer").innerHTML = "";
     }
-    function editNode(id) {
+    function showEditForm(id) {
       let n = mindmap.nodes.find(nn=>nn.id===id);
       const formDiv = document.getElementById("formContainer");
       formDiv.innerHTML = `
@@ -179,76 +224,3 @@
           <input type="text" id="nodeTitle" value="${escapeHTML(n.title)}" required>
           <label>Kommentar/Notiz:</label>
           <textarea id="nodeComment">${escapeHTML(n.comment)}</textarea>
-          <div class="actions">
-            <button onclick="hideForm()" type="button">Abbrechen</button>
-            <button onclick="submitEdit(${id})" type="button">Speichern</button>
-          </div>
-        </form>
-      `;
-      formDiv.style.display = "block";
-      formDiv.style.left = "35vw";
-      formDiv.style.top = "18vh";
-      document.getElementById("nodeTitle").focus();
-    }
-    function submitEdit(id) {
-      let n = mindmap.nodes.find(nn=>nn.id===id);
-      n.title = document.getElementById("nodeTitle").value;
-      n.comment = document.getElementById("nodeComment").value;
-      hideForm();
-      render();
-    }
-    function deleteNode(id) {
-      if (!confirm("Knoten und alle darunter löschen?")) return;
-      const removeRec = id => {
-        mindmap.nodes.filter(n => n.parent === id).forEach(n => removeRec(n.id));
-        mindmap.nodes = mindmap.nodes.filter(n => n.id !== id);
-      };
-      removeRec(id);
-      render();
-    }
-
-    // Drag&Drop global
-    document.body.onmousemove = function(e) {
-      if (!dragNode) return;
-      dragNode.x = e.clientX - offsetX;
-      dragNode.y = e.clientY - offsetY - document.querySelector(".toolbar").offsetHeight;
-      render();
-    }
-    document.body.onmouseup = function() { dragNode = null; render(); };
-
-    // Speichern / Laden
-    function downloadMap() {
-      let data = JSON.stringify(mindmap, null, 2);
-      let blob = new Blob([data], {type:"application/json"});
-      let url = URL.createObjectURL(blob);
-      let a = document.createElement("a");
-      a.href = url; a.download = "mindmap.json";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }
-    document.getElementById('fileInput').onchange = function(e) {
-      let file = e.target.files[0];
-      if (!file) return;
-      let reader = new FileReader();
-      reader.onload = function(evt) {
-        mindmap = JSON.parse(evt.target.result);
-        nodeId = Math.max(...mindmap.nodes.map(n=>n.id))+1;
-        render();
-      };
-      reader.readAsText(file);
-    };
-
-    // Hilfsfunktion
-    function escapeHTML(str) {
-      return (str||"").replace(/[&<>"]/g, ch=>({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[ch]));
-    }
-
-    // Global edit-Binding für Inline-Edit-Symbole
-    window.editNode = editNode;
-    window.deleteNode = deleteNode;
-    window.addChildNode = addChildNode;
-
-    // Initial Render
-    render();
-  </script>
-</body>
-</html>
