@@ -2,11 +2,8 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Mermaid Live Editor (v9.4.3, klassisch)</title>
-  <script type="module">
-    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.esm.min.mjs";
-    window.mermaid = mermaid;
-  </script>
+  <title>Mermaid Classic Editor (v8.13)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@8.13.10/dist/mermaid.min.js"></script>
   <style>
     body { background:#f6faff; font-family:sans-serif; margin:0;}
     #container { max-width:860px; margin:24px auto; background:#fff; border-radius:10px; box-shadow:0 2px 16px #0002; padding:22px 26px 22px 26px; }
@@ -22,7 +19,7 @@
 </head>
 <body>
   <div id="container">
-    <h2>Mermaid Live-Editor <span style="font-size:0.93em;color:#888;">(5GL-Modul, v9.4.3)</span></h2>
+    <h2>Mermaid Classic Editor <span style="font-size:0.93em;color:#888;">(v8.13, 5GL)</span></h2>
     <label for="input" style="font-weight:500;color:#157;">Diagramm-Quelltext (Mermaid):</label>
     <textarea id="input">flowchart TD
     Hauptmenü([main.html<br/>Hauptmenü])
@@ -63,27 +60,24 @@
     <div id="errMsg"></div>
     <div id="preview"></div>
   </div>
-  <script type="module">
+  <script>
+    // Initialisierung
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+
     let input = document.getElementById('input');
     let preview = document.getElementById('preview');
     let errMsg = document.getElementById('errMsg');
     let lastDiagram = "";
 
-    async function renderMermaid() {
+    function renderMermaid() {
       let txt = input.value.trim();
       if (!txt) { preview.innerHTML = ""; errMsg.textContent = ""; lastDiagram = ""; return; }
-      try {
-        let { svg } = await mermaid.render('diagram'+Date.now(), txt);
-        preview.innerHTML = svg;
+      mermaid.render('diagram'+Date.now(), txt, function(svgCode) {
+        preview.innerHTML = svgCode;
+        lastDiagram = svgCode;
         errMsg.textContent = "";
-        lastDiagram = svg;
         document.getElementById('lastDiagram').textContent = "Diagramm aktualisiert: " + new Date().toLocaleTimeString();
-      } catch (e) {
-        preview.innerHTML = "";
-        errMsg.textContent = "❌ Fehler: " + (e?.message || e);
-        lastDiagram = "";
-        document.getElementById('lastDiagram').textContent = "";
-      }
+      }, preview);
     }
     input.addEventListener('input', renderMermaid);
     renderMermaid();
