@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Ideenbank (mit Priorität)</title>
+  <style>
+    body { font-family: sans-serif; background: #f6faff; margin: 0; }
+    #wrapper { max-width: 1100px; margin: 18px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 16px 22px 24px 22px; }
+    h2 { color: #0287c2; margin-bottom: 7px;}
+    table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+    th, td { border: 1px solid #e0e5ee; padding: 6px 9px; }
+    th { background: #e6f2ff; cursor:pointer; user-select:none; font-weight:500; font-size:1em; }
+    .btn { background: #e6f2ff; color: #0287c2; border: none; border-radius: 5px; padding: 5px 12px; cursor: pointer;}
+    .btn:hover { background: #c8e4fa; }
+    #formDiv { margin-bottom: 10px; }
+    .small { font-size: 0.97em; color: #888;}
+    #exportBtn, #importBtn { margin-right: 12px; }
+    .add-btn { font-size: 1.1em; padding: 2px 7px; margin-left: 2px;}
+    .catstat-row { display:flex; align-items:center; gap:6px; margin-bottom: 7px;}
+    .catstat-row span { flex: 1 1 0;}
+    .catstat-head { color:#026199; font-weight:bold; margin:8px 0 3px 0; display:block;}
+    .prio-hoch { color:#b90000; font-weight:bold; }
+    .prio-mittel { color:#f7a600; font-weight:bold; }
+    .prio-niedrig { color:#097c22; font-weight:bold; }
+    #prio { width:100px;}
+    #searchBox { width:250px; padding:5px 11px; margin:0 14px 7px 0; border-radius:8px; border:1px solid #cbe4f9;}
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <h2>Ideenbank <span class="small">(mit Priorität)</span></h2>
+    <div id="formDiv">
+      <input id="titel" placeholder="Titel" style="width:120px;">
+      <select id="kategorie" style="width:112px;"></select>
+      <select id="status" style="width:112px;"></select>
+      <select id="prio">
+        <option value="hoch" class="prio-hoch">hoch ★</option>
+        <option value="mittel" class="prio-mittel" selected>mittel</option>
+        <option value="niedrig" class="prio-niedrig">niedrig</option>
+      </select>
+      <input id="datum" type="date" style="width:110px;">
+      <input id="beschreibung" placeholder="Beschreibung" style="width:180px;">
+      <button class="btn" onclick="addIdee()">➕ Hinzufügen</button>
+    </div>
+    <div style="margin-bottom:6px;">
+      <input id="searchBox" placeholder="Suchen in allen Spalten..." oninput="renderTabelle()">
+      <button class="btn" id="exportBtn" onclick="exportIdeen()">⤓ Exportieren</button>
+      <button class="btn" id="importBtn" onclick="document.getElementById('importFile').click()">⤒ Importieren</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+      <span style="float:right" class="small" id="autosaveMsg"></span>
+    </div>
+    <table id="ideenTabelle">
+      <thead>
+        <tr>
+          <th onclick="sortTable('nr')">#</th>
+          <th onclick="sortTable('titel')">Titel</th>
+          <th onclick="sortTable('kategorie')">Kategorie</th>
+          <th onclick="sortTable('status')">Status</th>
+          <th onclick="sortTable('prio')">Prio</th>
+          <th onclick="sortTable('datum')">Datum</th>
+          <th onclick="sortTable('beschreibung')">Beschreibung</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="small">
+      Prio: <span class="prio-hoch">hoch</span> | <span class="prio-mittel">mittel</span> | <span class="prio-niedrig">niedrig</span>
+    </div>
+  </div>
+  <script>
+    let ideen = [];
+    let kategorien = ["Tool", "Export", "Organisation"];
+    let stati = ["offen", "in Arbeit", "erledigt", "wichtig"];
+    let sortColumn = 'prio';
+    let sortAsc = false; // Prio absteigend (hoch zuerst)
+
+    // --- Import/Upgrade für alte JSON ohne prio ---
+    document.getElementById('importFile').onchange = function(e) {
+      let file = e.target.files[0];
+      if (!file) return;
+      let reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          let data = JSON.parse(evt.target.result);
+          if (!data.ideen || !Array.isArray(data.ideen)) throw new Error("Formatfehler: Array 'ideen' fehlt!");
+          // Alle alten Einträge OHNE prio bekommen "mittel"
+          data.ideen.forEach(i => { if (!i.prio) i.prio = "mittel"; });
+          ideen = data.ideen;
+          kategorien = Array.isArray(data.kategorien) ? data.kategorien : kategorien;
+          stati = Array.isArray(data.stati) ? data.stati : stati;
+          renderDropdowns();
+          renderTabelle();
+          autosave();
+        } catch (err) {
+          alert("Fehler beim Import:\n" + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    function renderDropdowns() {
+      let selKat = document.getElementById("kategorie");
+      selKat.innerHTML = "";
+      kategorien.forEach(k => selKat.innerHTML += `<option>${k}</option>`);
+      let selStat = document.getElementById("status");
+      selStat.innerHTML = "";
+      stati.forEach(s => selStat.innerHTML += `<option>${s}</option>`);
+    }
+
+    function prioClass(prio) {
+      if (prio === "hoch") return "prio-hoch";
+      if (prio === "mittel") return "prio-mittel";
+      return "prio-niedrig";
+    }
+
+    function prioSortValue(prio) {
+      if (prio === "hoch") return 3;
+      if (prio === "mittel") return 2;
+      return 1;
+    }
+
+    function renderTabelle() {
+      let tb = document.querySelector("#ideenTabelle tbody");
+      tb.innerHTML = "";
+      let such = document.getElementById("searchBox").value.trim().toLowerCase();
+      let data = ideen.slice();
+      data = data.filter(i => {
+        if(!such) return true;
+        return (
+          (""+i.titel).toLowerCase().includes(such) ||
+          (""+i.kategorie).toLowerCase().includes(such) ||
+          (""+i.status).toLowerCase().includes(such) ||
+          (""+i.datum).toLowerCase().includes(such) ||
+          (""+i.beschreibung).toLowerCase().includes(such) ||
+          (""+i.prio).toLowerCase().includes(such)
+        );
+      });
+      data.sort((a, b) => {
+        let vA, vB;
+        if(sortColumn === 'nr') { vA = ideen.indexOf(a); vB = ideen.indexOf(b); }
+        else if (sortColumn === 'prio') { vA = prioSortValue(a.prio); vB = prioSortValue(b.prio); }
+        else { vA = (a[sortColumn]||"").toLowerCase(); vB = (b[sortColumn]||"").toLowerCase(); }
+        if (vA < vB) return sortAsc ? -1 : 1;
+        if (vA > vB) return sortAsc ? 1 : -1;
+        return 0;
+      });
+      data.forEach((idee, idx) => {
+        tb.innerHTML += `<tr>
+          <td>${idx+1}</td>
+          <td>${idee.titel}</td>
+          <td>${idee.kategorie || ""}</td>
+          <td>${idee.status || ""}</td>
+          <td class="${prioClass(idee.prio)}">${idee.prio||"mittel"}</td>
+          <td>${idee.datum || ""}</td>
+          <td>${idee.beschreibung}</td>
+          <td><button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button></td>
+        </tr>`;
+      });
+    }
+
+    function addIdee() {
+      let titel = document.getElementById("titel").value.trim();
+      let kategorie = document.getElementById("kategorie").value;
+      let datum = document.getElementById("datum").value || (new Date()).toISOString().slice(0,10);
+      let status = document.getElementById("status").value;
+      let beschreibung = document.getElementById("beschreibung").value.trim();
+      let prio = document.getElementById("prio").value;
+      if (!titel) { alert("Bitte Titel angeben."); return; }
+      let id = (ideen.length ? Math.max(...ideen.map(i=>i.id))+1 : 1);
+      ideen.push({id, titel, kategorie, datum, status, beschreibung, prio});
+      renderTabelle();
+      document.getElementById("titel").value = "";
+      document.getElementById("beschreibung").value = "";
+      autosave();
+    }
+
+    function deleteIdee(id) {
+      if (!confirm("Idee wirklich löschen?")) return;
+      ideen = ideen.filter(i => i.id !== id);
+      renderTabelle();
+      autosave();
+    }
+
+    function exportIdeen() {
+      let cleanIdeen = ideen.map(i => {
+        let o = {...i};
+        return o;
+      });
+      let blob = new Blob([JSON.stringify({
+        ideen: cleanIdeen,
+        kategorien,
+        stati,
+        prioritaeten: ["hoch","mittel","niedrig"]
+      }, null, 2)], {type:"application/json"});
+      let a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ideenbank.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>document.body.removeChild(a), 400);
+    }
+
+    // Autosave (localStorage)
+    function autosave() {
+      let obj = {ideen, kategorien, stati, prioritaeten: ["hoch","mittel","niedrig"]};
+      localStorage.setItem("ideenbank5GL", JSON.stringify(obj));
+      document.getElementById("autosaveMsg").textContent = "Gespeichert " + (new Date()).toLocaleTimeString();
+    }
+    function autorestore() {
+      let d = localStorage.getItem("ideenbank5GL");
+      if (!d) return;
+      try {
+        let obj = JSON.parse(d);
+        if (Array.isArray(obj.ideen)) ideen = obj.ideen;
+        if (Array.isArray(obj.kategorien)) kategorien = obj.kategorien;
+        if (Array.isArray(obj.stati)) stati = obj.stati;
+      } catch (e) { /* ignorieren */ }
+    }
+    window.addEventListener("beforeunload", autosave);
+
+    function sortTable(col) {
+      if (sortColumn === col) { sortAsc = !sortAsc; }
+      else { sortColumn = col; sortAsc = (col==="prio")?false:true; }
+      renderTabelle();
+    }
+
+    // --- Initialisierung ---
+    autorestore();
+    renderDropdowns();
+    renderTabelle();
+  </script>
+</body>
+</html>
