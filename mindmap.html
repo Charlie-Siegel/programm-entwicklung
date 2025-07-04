@@ -2,85 +2,67 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Projekt-Mindmap (5GL-Sammlung)</title>
+  <title>Mini-Mindmap (ohne Bibliothek)</title>
   <style>
-    body { margin:0; background: #f7fafc; font-family:sans-serif;}
-    #map { width: 100vw; height: 90vh; border: 1px solid #bbb; }
-    #toolbar { padding: 10px; background: #eee; }
-    button { margin-right: 10px; }
+    body { font-family: sans-serif; background: #f8fafc; margin: 0; }
+    #tree { padding: 20px; }
+    ul { list-style-type: none; }
+    .node {
+      margin: 3px 0;
+      padding: 6px 10px;
+      background: #e6f4ff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .children { margin-left: 32px; }
+    .node input[type="text"] { width: 120px; }
+    .node textarea { width: 160px; height: 36px; }
+    .node button { margin-left: 6px; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/mind-elixir-core/dist/mind-elixir.umd.js"></script>
 </head>
 <body>
-  <div id="toolbar">
-    <button onclick="saveMap()">🗄️ Mindmap speichern</button>
-    <button onclick="loadMap()">📂 Mindmap laden</button>
-    <input type="file" id="fileInput" style="display:none" accept=".json" />
+  <h2 style="padding-left:20px;">🧩 Mini-Mindmap: 5GL-Baustein-Sammlung</h2>
+  <div id="toolbar" style="padding-left:20px; margin-bottom:5px;">
+    <button onclick="downloadMap()">Mindmap speichern</button>
+    <button onclick="document.getElementById('fileInput').click()">Mindmap laden</button>
+    <input type="file" id="fileInput" style="display:none" accept=".json">
   </div>
-  <div id="map"></div>
+  <div id="tree"></div>
+
   <script>
-    // Funktionierende Startdaten: Root + Hauptäste
-    const initialData = {
-      "nodeData": {
-        "id": "root",
-        "topic": "5GL-Baustein-Sammlung",
-        "root": true,
-        "children": [
-          { "id": "1", "topic": "Bausteinverwaltung", "children": [] },
-          { "id": "2", "topic": "Klassendesigner", "children": [] },
-          { "id": "3", "topic": "Logbuch", "children": [] },
-          { "id": "4", "topic": "Hilfedokumentation", "children": [] },
-          { "id": "5", "topic": "Vorschau & Simulation", "children": [] },
-          { "id": "6", "topic": "Dateiverwaltung", "children": [] },
-          { "id": "7", "topic": "User & Rollen (optional)", "children": [] },
-          { "id": "8", "topic": "Projektverwaltung/Doku", "children": [] }
-        ]
-      }
+    // ----- Datenmodell -----
+    let mindmap = {
+      id: Date.now(),
+      title: "5GL-Baustein-Sammlung",
+      comment: "",
+      children: [
+        { id: Date.now()+1, title: "Bausteinverwaltung", comment: "", children: [] },
+        { id: Date.now()+2, title: "Klassendesigner", comment: "", children: [] },
+        { id: Date.now()+3, title: "Logbuch", comment: "", children: [] },
+        { id: Date.now()+4, title: "Hilfedokumentation", comment: "", children: [] },
+        { id: Date.now()+5, title: "Vorschau & Simulation", comment: "", children: [] },
+        { id: Date.now()+6, title: "Dateiverwaltung", comment: "", children: [] },
+        { id: Date.now()+7, title: "User & Rollen (optional)", comment: "", children: [] },
+        { id: Date.now()+8, title: "Projektverwaltung/Doku", comment: "", children: [] }
+      ]
     };
 
-    // Initialisiere MindElixir
-    const mind = new MindElixir({
-      el: '#map',
-      direction: MindElixir.SIDE,
-      draggable: true,
-      contextMenu: true,
-      toolBar: true,
-      nodeMenu: true,
-      keypress: true,
-      locale: 'de'
-    });
-
-    // WICHTIG: .init() nach Konstruktor-Aufruf!
-    mind.init(initialData);
-
-    // Mindmap speichern
-    function saveMap() {
-      const data = JSON.stringify(mind.getData(), null, 2);
-      const blob = new Blob([data], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = "projekt_mindmap.json";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    // ----- Rendering -----
+    function renderTree() {
+      document.getElementById('tree').innerHTML = renderNode(mindmap);
+      addNodeEventHandlers();
     }
 
-    // Mindmap laden
-    document.getElementById("fileInput").addEventListener("change", function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const data = JSON.parse(evt.target.result);
-        mind.init(data);
-      };
-      reader.readAsText(file);
-    });
-
-    function loadMap() {
-      document.getElementById("fileInput").click();
-    }
-  </script>
-</body>
-</html>
+    function renderNode(node) {
+      let html = `<ul><li>
+        <div class="node" data-id="${node.id}">
+          <b>${escapeHTML(node.title)}</b>
+          <button class="editBtn">✏️</button>
+          <button class="addBtn">➕</button>
+          ${node !== mindmap ? '<button class="delBtn">🗑️</button>' : ''}
+        </div>
+        <div style="margin-left:12px; margin-bottom:2px; font-size:0.9em; color:#0070b8;">
+          ${node.comment ? escapeHTML(node.comment) : '<span style="color:#999;">(kein Kommentar)</span>'}
+        </div>
+        <div class="children">${(node.
