@@ -2,10 +2,155 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Testumgebung</title>
+  <title>GLFenster Demo</title>
+  <style>
+    body { background: #ecf2fa; font-family: sans-serif; }
+    .glfenster {
+      position: absolute; top: 80px; left: 100px; width: 420px; min-width:240px;
+      min-height: 60px; background: #fff; box-shadow: 0 4px 18px #0002;
+      border-radius: 11px; z-index: 50; border: 1.8px solid #b5d2f6;
+      resize: both; overflow: auto;
+      transition: box-shadow .15s;
+    }
+    .glfenster:focus-within, .glfenster.active { box-shadow: 0 6px 24px #0497fa33, 0 2px 10px #0002; }
+    .glfenster.minimized { height:34px!important; min-height:30px; overflow:hidden;}
+    .glfenster.maximized {
+      left:0!important; top:0!important; width:100vw!important; height:96vh!important;
+      min-width:100px!important; min-height:50px!important; border-radius:0;
+      z-index:999!important;
+    }
+    .titlebar {
+      height:34px; background:#eaf4fc; border-radius:11px 11px 0 0;
+      display:flex; align-items:center; padding:0 12px 0 12px; cursor:move;
+      user-select:none; font-weight:500; color:#0275b8;
+      border-bottom:1px solid #d7eafd; position:relative;
+    }
+    .titlebar .icon { width:20px; height:20px; margin-right:10px;}
+    .titlebar .title { flex:1 1 0; font-size:1.13em; letter-spacing:.3px;}
+    .titlebar .window-btn { border:none; background:none; font-size:1.22em; margin-left:5px; cursor:pointer; color:#479; opacity:0.78;}
+    .titlebar .window-btn:hover { color:#0287c2; background:#def5ff; border-radius:5px;}
+    .titlebar .window-btn.print-btn { font-size:1.16em; }
+    .glfenster .content { padding:20px 19px 18px 19px; font-size:1.09em; color:#113; min-height:32px;}
+    .resize-corner { position:absolute; right:3px; bottom:2px; width:14px; height:14px; cursor:se-resize; z-index:10;}
+    .resize-corner:after { content:""; display:block; width:100%; height:100%; background:linear-gradient(135deg, #cbe4f9 55%, #fff 100%); border-radius:2px;}
+    .minimized .content { display:none;}
+    .small { font-size:0.97em; color:#777; margin:14px 0 0 5px;}
+  </style>
 </head>
 <body>
-  <h2>Testseite ist geladen!</h2>
-  <button onclick="alert('Hallo, Test erfolgreich!')">Test-Button</button>
+  <div id="glfenster1" class="glfenster" tabindex="1">
+    <div class="titlebar" onmousedown="startDrag(event, this.parentNode)">
+      <img class="icon" src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/window.svg" alt="Icon" />
+      <span class="title">GLFenster Demo</span>
+      <button class="window-btn print-btn" onclick="printFenster(event)" title="Drucken">🖨️</button>
+      <button class="window-btn" onclick="minFenster(event)" title="Minimieren">_</button>
+      <button class="window-btn" onclick="maxFenster(event)" title="Maximieren/Vollbild">□</button>
+      <button class="window-btn" onclick="closeFenster(event)" title="Schließen">×</button>
+    </div>
+    <div class="content">
+      <b>Herzlich willkommen im GLFenster!</b><br>
+      <div class="small">
+        Dieses Fenster kann verschoben, skaliert, minimiert, maximiert und gedruckt werden.<br>
+        - Ziehe die Titelzeile zum Verschieben.<br>
+        - Nutze den Anfasser unten rechts zum Skalieren.<br>
+        - Buttons rechts: Drucken, Minimieren, Maximieren, Schließen.
+      </div>
+    </div>
+    <div class="resize-corner" onmousedown="startResize(event, this.parentNode)"></div>
+  </div>
+  <script>
+    let f = document.getElementById("glfenster1");
+    let isMax = false, isMin = false;
+    let savedPos = {}, savedWH = {};
+
+    // --- Drag/Move ---
+    function startDrag(e, fenster) {
+      if (e.target.classList.contains("window-btn")) return;
+      e.preventDefault();
+      let rect = fenster.getBoundingClientRect();
+      let startX = e.clientX, startY = e.clientY;
+      let offsetX = startX - rect.left, offsetY = startY - rect.top;
+      function move(ev) {
+        fenster.style.left = (ev.clientX - offsetX) + "px";
+        fenster.style.top = (ev.clientY - offsetY) + "px";
+      }
+      function up() {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+      }
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    }
+
+    // --- Resize ---
+    function startResize(e, fenster) {
+      e.preventDefault(); e.stopPropagation();
+      let startX = e.clientX, startY = e.clientY;
+      let startW = fenster.offsetWidth, startH = fenster.offsetHeight;
+      function move(ev) {
+        fenster.style.width = Math.max(240, startW + (ev.clientX - startX)) + "px";
+        fenster.style.height = Math.max(60, startH + (ev.clientY - startY)) + "px";
+      }
+      function up() {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+      }
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    }
+
+    // --- Fenster-Buttons ---
+    function closeFenster(e) {
+      e.stopPropagation();
+      f.style.display = "none";
+    }
+    function minFenster(e) {
+      e.stopPropagation();
+      if (f.classList.contains("minimized")) {
+        f.classList.remove("minimized");
+        isMin = false;
+      } else {
+        f.classList.remove("maximized");
+        f.classList.add("minimized");
+        isMin = true;
+      }
+    }
+    function maxFenster(e) {
+      e.stopPropagation();
+      if (f.classList.contains("maximized")) {
+        f.classList.remove("maximized");
+        isMax = false;
+        if(savedPos.left) { f.style.left = savedPos.left; f.style.top = savedPos.top; }
+        if(savedWH.width) { f.style.width = savedWH.width; f.style.height = savedWH.height; }
+      } else {
+        savedPos = { left: f.style.left, top: f.style.top };
+        savedWH = { width: f.style.width, height: f.style.height };
+        f.classList.remove("minimized");
+        f.classList.add("maximized");
+        isMax = true; isMin = false;
+      }
+    }
+
+    // --- Print-Button ---
+    function printFenster(e) {
+      e.stopPropagation();
+      let printContent = f.querySelector(".content").innerHTML;
+      let printWin = window.open("", "", "width=680,height=600");
+      printWin.document.write(`
+        <html><head>
+          <title>Fenster drucken</title>
+          <style>body{font-family:sans-serif;margin:30px;} .small{font-size:0.97em; color:#888;}</style>
+        </head>
+        <body>
+        <h3>${f.querySelector(".title").textContent}</h3>
+        <div>${printContent}</div>
+        </body></html>
+      `);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(()=>printWin.print(), 200);
+    }
+  </script>
 </body>
 </html>
+
