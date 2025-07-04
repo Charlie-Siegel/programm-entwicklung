@@ -1,0 +1,118 @@
+{
+  "class": "MindmapKnoten",
+  "description": "Ein Knoten innerhalb einer Mindmap. Repräsentiert einen beschrifteten, verschiebbaren und bearbeitbaren Punkt mit optionaler Hierarchie.",
+  "properties": [
+    {
+      "name": "id",
+      "type": "number|string",
+      "description": "Eindeutige Kennung des Knotens."
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "description": "Titel oder Name des Knotens."
+    },
+    {
+      "name": "x",
+      "type": "number",
+      "description": "X-Position (Pixel) auf dem Canvas."
+    },
+    {
+      "name": "y",
+      "type": "number",
+      "description": "Y-Position (Pixel) auf dem Canvas."
+    },
+    {
+      "name": "comment",
+      "type": "string",
+      "description": "Freitext, Notiz oder Kommentar zum Knoten."
+    },
+    {
+      "name": "parent",
+      "type": "number|string|null",
+      "description": "ID des Elternknotens. Null für Wurzelknoten."
+    },
+    {
+      "name": "div",
+      "type": "HTMLElement|null",
+      "description": "Referenz auf das DOM-Element (wird intern gesetzt)."
+    },
+    {
+      "name": "children",
+      "type": "array",
+      "description": "Array von IDs oder Instanzen der direkten Unterknoten."
+    },
+    {
+      "name": "color",
+      "type": "string",
+      "description": "Hintergrundfarbe des Knotens (optional, z.B. #ffcc00)."
+    },
+    {
+      "name": "icon",
+      "type": "string",
+      "description": "Pfad oder Symbol für ein kleines Icon im Knoten (optional)."
+    }
+  ],
+  "methods": [
+    {
+      "name": "render",
+      "parameters": ["canvas", "onEdit"],
+      "returns": "void",
+      "description": "Zeichnet/aktualisiert den Knoten auf dem Canvas, setzt Drag&Drop und Buttons."
+    },
+    {
+      "name": "editDialog",
+      "parameters": ["onEdit"],
+      "returns": "void",
+      "description": "Öffnet ein Bearbeiten-Dialogfeld für Titel/Kommentar."
+    },
+    {
+      "name": "updatePosition",
+      "parameters": ["x", "y"],
+      "returns": "void",
+      "description": "Setzt neue Koordinaten und verschiebt das Element."
+    },
+    {
+      "name": "delete",
+      "parameters": [],
+      "returns": "void",
+      "description": "Löscht den Knoten – aber NUR, wenn keine Unterknoten mehr vorhanden sind."
+    },
+    {
+      "name": "addChild",
+      "parameters": ["childNode"],
+      "returns": "void",
+      "description": "Fügt einen Unterknoten hinzu."
+    },
+    {
+      "name": "removeChild",
+      "parameters": ["childId"],
+      "returns": "void",
+      "description": "Entfernt einen Unterknoten mit der angegebenen ID."
+    },
+    {
+      "name": "markSelected",
+      "parameters": [],
+      "returns": "void",
+      "description": "Hebt den Knoten im UI hervor."
+    },
+    {
+      "name": "unmarkSelected",
+      "parameters": [],
+      "returns": "void",
+      "description": "Entfernt die Hervorhebung im UI."
+    },
+    {
+      "name": "setData",
+      "parameters": ["dataObj"],
+      "returns": "void",
+      "description": "Setzt mehrere Eigenschaften des Knotens gleichzeitig."
+    },
+    {
+      "name": "getData",
+      "parameters": [],
+      "returns": "object",
+      "description": "Gibt alle relevanten Eigenschaften als Datenobjekt zurück (für Export/Speichern)."
+    }
+  ]
+}
