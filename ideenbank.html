@@ -5,41 +5,45 @@
   <title>Ideenbank</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
-    #wrapper { max-width: 1100px; margin: 18px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 16px 22px 24px 22px; }
-    h2 { color: #0287c2; margin-bottom: 7px;}
-    table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-    th, td { border: 1px solid #e0e5ee; padding: 6px 9px; }
+    #wrapper { max-width: 1100px; margin: 14px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 12px 20px 22px 20px; }
+    h2 { color: #0287c2; margin-bottom: 5px;}
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    th, td { border: 1px solid #e0e5ee; padding: 5px 8px; }
     th { background: #e6f2ff; cursor:pointer; user-select:none; font-weight:500; font-size:1em; }
+    .sort-arrow { margin-left:3px; color:#048; font-size:0.98em;}
     .btn { background: #e6f2ff; color: #0287c2; border: none; border-radius: 5px; padding: 5px 12px; cursor: pointer;}
     .btn:hover { background: #c8e4fa; }
-    #formDiv { margin-bottom: 10px; }
+    #formDiv { margin-bottom: 7px; }
     .small { font-size: 0.97em; color: #888;}
-    #exportBtn, #importBtn { margin-right: 12px; }
+    #exportBtn, #importBtn { margin-right: 11px; }
     .add-btn { font-size: 1.1em; padding: 2px 7px; margin-left: 2px;}
-    .catstat-row { display:flex; align-items:center; gap:6px; margin-bottom: 7px;}
+    .catstat-row { display:flex; align-items:center; gap:6px; margin-bottom: 6px;}
     .catstat-row span { flex: 1 1 0;}
-    .catstat-head { color:#026199; font-weight:bold; margin:8px 0 3px 0; display:block;}
+    .catstat-head { color:#026199; font-weight:bold; margin:7px 0 2px 0; display:block;}
     .dialog {
-      display:none; position:fixed; top:6vh; left:0; right:0; margin:auto; width:390px;
+      display:none; position:fixed; top:9vh; left:0; right:0; margin:auto; width:390px;
       background:#fff; border-radius:11px; box-shadow:0 8px 36px #0005; z-index:99;
       padding:0 0 20px 0; text-align:left;
-      animation: popupIn .2s;
+      min-width:320px; min-height:70px;
+      resize: both; overflow:auto;
     }
     .dialog-title {
-      font-weight:bold; color:#0287c2; padding:12px 24px 6px 24px;
-      font-size:1.10em; border-bottom:1px solid #eef1f4; display:flex; align-items:center; justify-content:space-between;
-      gap:9px;
+      font-weight:bold; color:#0287c2; padding:11px 17px 5px 17px;
+      font-size:1.09em; border-bottom:1px solid #eef1f4; display:flex; align-items:center; justify-content:space-between;
+      gap:8px; cursor:move; user-select:none;
     }
-    .dialog-content { padding:12px 24px 2px 24px; }
-    .dialog-actions { padding:10px 24px 2px 24px;}
-    .close-x, .min-x, .max-x { color:#888; background:none; border:none; font-size:1.3em; cursor:pointer; font-weight:bold; margin-left:2px;}
+    .dialog-content { padding:10px 17px 2px 17px; }
+    .dialog-actions { padding:9px 17px 2px 17px;}
+    .close-x, .min-x, .max-x { color:#888; background:none; border:none; font-size:1.18em; cursor:pointer; font-weight:bold; margin-left:2px;}
     .close-x:hover { color:#c00;}
     .min-x:hover, .max-x:hover { color:#036;}
-    #fixedclock { position:fixed; right:24px; bottom:12px; background:#e8eafc; color:#048; padding:4px 16px 4px 14px; border-radius:15px 17px; box-shadow:0 2px 8px #aaa2; font-size:1.04em; z-index:10; }
-    .import-buttons { margin-bottom:13px; }
+    #fixedclock { position:fixed; right:22px; bottom:9px; background:#e8eafc; color:#048; padding:3px 15px 4px 13px; border-radius:14px 15px; box-shadow:0 2px 8px #aaa2; font-size:1.01em; z-index:10; }
+    .import-buttons { margin-bottom:10px; }
     .imported-row { background:#fffbe6 !important; }
-    .import-buttons .btn { font-size:1.07em; margin-right:12px; margin-bottom:5px; }
-    #searchBox { width:250px; padding:5px 11px; margin:0 14px 7px 0; border-radius:8px; border:1px solid #cbe4f9;}
+    .import-buttons .btn { font-size:1.07em; margin-right:11px; margin-bottom:4px; }
+    #searchBox { width:220px; padding:4px 10px; margin:0 13px 6px 0; border-radius:8px; border:1px solid #cbe4f9;}
+    .resize-corner { position:absolute; right:2px; bottom:2px; width:15px; height:15px; cursor:se-resize; z-index:10;}
+    .resize-corner:after { content:""; display:block; width:100%; height:100%; background:linear-gradient(135deg, #cbe4f9 55%, #fff 100%); border-radius:2px;}
     @keyframes popupIn { from {transform:scale(0.96); opacity:0.1;} to{transform:scale(1);opacity:1;}}
   </style>
 </head>
@@ -56,7 +60,7 @@
       <input id="beschreibung" placeholder="Beschreibung" style="width:180px;">
       <button class="btn" onclick="addIdee()">➕ Hinzufügen</button>
     </div>
-    <div style="margin-bottom:6px;">
+    <div style="margin-bottom:5px;">
       <input id="searchBox" placeholder="Suchen in allen Spalten..." oninput="renderTabelle()">
       <button class="btn" id="exportBtn" onclick="exportIdeen()">⤓ Exportieren</button>
       <button class="btn" id="importBtn" onclick="document.getElementById('importFile').click()">⤒ Importieren</button>
@@ -71,12 +75,12 @@
     <table id="ideenTabelle">
       <thead>
         <tr>
-          <th onclick="sortTable('nr')">#</th>
-          <th onclick="sortTable('titel')">Titel</th>
-          <th onclick="sortTable('kategorie')">Kategorie</th>
-          <th onclick="sortTable('status')">Status</th>
-          <th onclick="sortTable('datum')">Datum</th>
-          <th onclick="sortTable('beschreibung')">Beschreibung</th>
+          <th onclick="sortTable('nr')">#<span id="arrow-nr" class="sort-arrow"></span></th>
+          <th onclick="sortTable('titel')">Titel<span id="arrow-titel" class="sort-arrow"></span></th>
+          <th onclick="sortTable('kategorie')">Kategorie<span id="arrow-kategorie" class="sort-arrow"></span></th>
+          <th onclick="sortTable('status')">Status<span id="arrow-status" class="sort-arrow"></span></th>
+          <th onclick="sortTable('datum')">Datum<span id="arrow-datum" class="sort-arrow"></span></th>
+          <th onclick="sortTable('beschreibung')">Beschreibung<span id="arrow-beschreibung" class="sort-arrow"></span></th>
           <th></th>
         </tr>
       </thead>
@@ -89,7 +93,7 @@
   <div id="fixedclock"></div>
   <!-- Kategorien/Status Dialog -->
   <div class="dialog" id="catstatDialog">
-    <div class="dialog-title">
+    <div class="dialog-title" onmousedown="startDrag(event, this.parentNode)">
       <span id="catstatTitle"></span>
       <span>
         <button class="min-x" onclick="minCatstat()" title="Minimieren">_</button>
@@ -103,6 +107,7 @@
       <button class="btn" onclick="catstatAdd()">+</button>
       <button class="btn" onclick="closeCatstat()">Schließen</button>
     </div>
+    <div class="resize-corner" onmousedown="startResize(event, this.parentNode)"></div>
   </div>
   <script>
     let ideen = [];
@@ -133,11 +138,8 @@
       let tb = document.querySelector("#ideenTabelle tbody");
       tb.innerHTML = "";
       let hasImported = false;
-      // Filter
       let such = document.getElementById("searchBox").value.trim().toLowerCase();
-      // Sortieren (flach kopieren für Sortierung)
       let data = ideen.slice();
-      // Spalten: nr, titel, kategorie, status, datum, beschreibung
       data = data.filter(i => {
         if(!such) return true;
         return (
@@ -169,8 +171,15 @@
           <td><button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button></td>
         </tr>`;
       });
-      // Import-Buttons anzeigen, falls importierte Ideen da sind
       document.getElementById("importButtonsBox").style.display = hasImported ? "block" : "none";
+      // Sortier-Pfeile setzen
+      let allCols = ["nr","titel","kategorie","status","datum","beschreibung"];
+      allCols.forEach(col=>{
+        let el = document.getElementById("arrow-"+col);
+        if(!el) return;
+        if(col===sortColumn) el.innerHTML = sortAsc ? "▲" : "▼";
+        else el.innerHTML = "";
+      });
     }
 
     function addIdee() {
@@ -270,6 +279,7 @@
       let dialog = document.getElementById("catstatDialog");
       dialog.classList.remove("minimized", "maximized");
       dialog.style.width = "390px";
+      dialog.style.height = "";
       document.getElementById("catstatTitle").textContent = title + " verwalten";
       let list = document.getElementById("catstatList");
       list.innerHTML = "";
@@ -325,15 +335,51 @@
     }
     function minCatstat() {
       let dialog = document.getElementById("catstatDialog");
-      dialog.classList.add("minimized");
-      dialog.style.height = "30px";
-      dialog.style.width = "220px";
+      dialog.style.height = "32px";
+      dialog.style.width = "240px";
     }
     function maxCatstat() {
       let dialog = document.getElementById("catstatDialog");
-      dialog.classList.add("maximized");
-      dialog.style.width = "90vw";
-      dialog.style.height = "80vh";
+      dialog.style.width = "92vw";
+      dialog.style.height = "83vh";
+    }
+    // Resize-Corner (unten rechts im Dialog)
+    function startResize(e, dialog) {
+      e.preventDefault(); e.stopPropagation();
+      let startX = e.clientX, startY = e.clientY;
+      let startW = dialog.offsetWidth, startH = dialog.offsetHeight;
+      function move(ev) {
+        let w = startW + (ev.clientX - startX);
+        let h = startH + (ev.clientY - startY);
+        dialog.style.width = Math.max(320, w) + "px";
+        dialog.style.height = Math.max(70, h) + "px";
+      }
+      function up() {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+      }
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    }
+    // Fenster ziehen per Titelzeile
+    function startDrag(e, dialog) {
+      if (e.target.classList.contains("close-x") || e.target.classList.contains("min-x") || e.target.classList.contains("max-x")) return;
+      e.preventDefault();
+      let startX = e.clientX, startY = e.clientY;
+      let rect = dialog.getBoundingClientRect();
+      let offsetX = startX - rect.left, offsetY = startY - rect.top;
+      function move(ev) {
+        dialog.style.left = (ev.clientX - offsetX) + "px";
+        dialog.style.top = (ev.clientY - offsetY) + "px";
+        dialog.style.right = "auto";
+        dialog.style.margin = "0";
+      }
+      function up() {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+      }
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
     }
 
     // --- Autosave ---
