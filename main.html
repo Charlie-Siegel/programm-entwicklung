@@ -2,138 +2,47 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>5GL-Projekt – Hauptmenü</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5GL Hauptmenü</title>
   <style>
-    body { margin: 0; background: #f6faff; font-family: sans-serif;}
-    .menu {
-      display: flex; align-items: center;
-      background: #0287c2; color: #fff;
-      padding: 0 16px; font-size: 1.13em;
-      min-height: 48px;
-      box-shadow: 0 2px 7px #0001;
+    body { background: #f6faff; margin: 0; font-family: sans-serif; }
+    #nav { background: #0287c2; padding: 0; }
+    #nav ul { margin: 0; padding: 0; display: flex; list-style: none; }
+    #nav li { margin: 0; }
+    #nav a {
+      display: block; color: #fff; text-decoration: none;
+      padding: 17px 34px; font-size: 1.14em;
+      border-right: 1px solid #0990db30;
+      transition: background 0.18s;
     }
-    .menu .brand { font-weight: bold; letter-spacing: 1px; margin-right: 20px; }
-    .menu .item, .menu .dropdown { position: relative; }
-    .menu .link, .menu .dropdown-toggle {
-      padding: 10px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 1em;
-      transition: background 0.15s;
-    }
-    .menu .link:hover, .menu .dropdown-toggle:hover, .menu .active {
-      background: #0ca1f2;
-      color: #fff;
-    }
-    .menu .dropdown-content {
-      display: none;
-      position: absolute;
-      left: 0; top: 100%;
-      min-width: 210px;
-      z-index: 10;
-      background: #fff;
-      box-shadow: 0 2px 8px #0002;
-      border-radius: 0 0 10px 10px;
-      overflow: hidden;
-    }
-    .menu .dropdown-content .dropdown-link {
-      display: block;
-      padding: 11px 20px;
-      color: #0287c2;
-      text-decoration: none;
-      background: #e6f2ff;
-      border-bottom: 1px solid #d0e6f9;
-      transition: background 0.13s;
-      cursor: pointer;
-      font-size: 0.98em;
-    }
-    .menu .dropdown-content .dropdown-link:last-child { border-bottom: none; }
-    .menu .dropdown-content .dropdown-link:hover {
-      background: #c7e6fa;
-    }
-    .menu .dropdown:hover .dropdown-content {
-      display: block;
-    }
-    #mainContent {
-      max-width: 960px;
-      margin: 44px auto 0 auto;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 12px #0002;
-      padding: 32px 30px 36px 30px;
-      min-height: 320px;
-    }
-    iframe {
-      width: 100%; height: 62vh;
-      border: none; border-radius: 8px;
-      background: #f6faff;
-      margin-top: 18px;
-      box-shadow: 0 2px 10px #0001;
-    }
-    @media (max-width: 850px) {
-      #mainContent { max-width: 98vw; padding: 3vw;}
-      iframe { height: 46vw; min-height: 280px;}
-    }
+    #nav a:hover { background: #06567d; }
+    #main { max-width: 1100px; margin: 32px auto 0 auto; padding: 30px 28px 22px 28px;
+      background: #fff; border-radius: 10px; box-shadow: 0 2px 16px #0002; min-height: 350px;}
+    iframe { border: none; width: 100%; min-height: 650px; }
+    @media (max-width: 800px) { #main { padding: 14px 5vw; } }
   </style>
 </head>
 <body>
-  <nav class="menu">
-    <span class="brand">5GL-Projekt</span>
-    <button class="link" onclick="loadPage('test.html')">Testumgebung</button>
-    <button class="link" onclick="clearIframe()">Leer</button>
-    <div class="dropdown">
-      <button class="dropdown-toggle">Dokumentation ▾</button>
-      <div class="dropdown-content">
-        <div class="dropdown-link" onclick="loadPage('JSON-Klassen.html')">JSON-Klassenbeschreibung</div>
-        <div class="dropdown-link" onclick="loadPage('generator_ui.html')">Code-Generator</div>
-        <div class="dropdown-link" onclick="loadPage('json_klassenpruefer.html')">Klassen-JSON prüfen</div>
-        <div class="dropdown-link" onclick="loadPage('ideenbank.html')">Ideenbank</div>
-      </div>
-    </div>
+  <nav id="nav">
+    <ul>
+      <li><a href="#" onclick="load('test.html')">Testumgebung</a></li>
+      <li><a href="#" onclick="load('ideenbank.html')">Ideenbank</a></li>
+      <li><a href="#" onclick="load('json_klassen.html')">JSON-Klassenbeschreibung</a></li>
+      <li><a href="#" onclick="load('generator_ui.html')">Code-Generator</a></li>
+      <li><a href="#" onclick="load('mermaid_editor.html')">Mermaid Editor</a></li>
+      <!-- <li><a href="#" onclick="clearMain()">Leer</a></li> -->
+    </ul>
   </nav>
-  <div id="mainContent">
-    <div id="iframeBox"></div>
+  <div id="main">
+    <h1>Willkommen zum 5GL-Projekt</h1>
+    <p>Bitte wähle eine Funktion im Menü.</p>
   </div>
   <script>
-    function loadPage(filename) {
-      clearIframe();
-      let iframe = document.createElement("iframe");
-      iframe.src = filename;
-      iframe.onload = function() {
-        try {
-          let body = iframe.contentWindow.document.body;
-          if (!body || body.innerHTML.trim() === "" ||
-            (iframe.contentDocument && iframe.contentDocument.title === "")) {
-            showError("Die Datei <b>" + filename + "</b> konnte nicht geladen werden oder ist leer.");
-          }
-        } catch (e) { showError("Fehler beim Laden: " + e.message); }
-      };
-      iframe.onerror = function() {
-        showError("Die Datei <b>" + filename + "</b> wurde nicht gefunden.");
-      };
-      setTimeout(function() {
-        try {
-          if (!iframe.contentWindow || !iframe.contentWindow.document.body ||
-            iframe.contentWindow.document.body.innerHTML === "") {
-            showError("Die Datei <b>" + filename + "</b> wurde nicht gefunden oder lädt nicht.");
-          }
-        } catch (e) { showError("Fehler beim Laden: " + e.message); }
-      }, 1200);
-      document.getElementById("iframeBox").appendChild(iframe);
+    function load(page) {
+      document.getElementById("main").innerHTML =
+        '<iframe src="'+page+'" onerror="this.parentNode.innerHTML=\'<p style=\\\'color:#b00\\\'>Seite nicht gefunden!</p>\';"></iframe>';
     }
-    function showError(msg) {
-      clearIframe();
-      let box = document.getElementById("iframeBox");
-      let err = document.createElement("div");
-      err.innerHTML = `<div style="color:#b00; background:#fce0e0; border-radius:8px; padding:18px 20px; margin:16px 0; border:2px solid #ea8a8a; font-size:1.11em;"><b>Fehler:</b> ${msg}</div>`;
-      box.appendChild(err);
-    }
-    function clearIframe() {
-      document.getElementById("iframeBox").innerHTML = "";
+    function clearMain() {
+      document.getElementById("main").innerHTML = "";
     }
   </script>
 </body>
