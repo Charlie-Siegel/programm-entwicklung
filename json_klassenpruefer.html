@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Klassen-JSON-Prüfer</title>
+  <style>
+    body { font-family: sans-serif; background: #f6faff; margin: 0; }
+    #wrapper { max-width: 680px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0002; padding: 28px 30px; }
+    h2 { color: #0287c2; }
+    .error { background: #fee; color: #b00; border: 2px solid #ea8a8a; border-radius: 6px; padding: 15px; margin: 18px 0 0 0; }
+    .ok { background: #e7fbeb; color: #187d4c; border: 2px solid #65e09d; border-radius: 6px; padding: 15px; margin: 18px 0 0 0; }
+    ul { margin: 8px 0 0 22px;}
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <h2>Prüfung einer Klassen-JSON-Beschreibung</h2>
+    <input type="file" id="selectFile" accept=".json">
+    <div id="output"></div>
+  </div>
+  <script>
+    document.getElementById('selectFile').onchange = function(e) {
+      let file = e.target.files[0];
+      if (!file) return;
+      let reader = new FileReader();
+      reader.onload = function(evt) {
+        let output = document.getElementById("output");
+        output.innerHTML = "";
+        try {
+          let data = JSON.parse(evt.target.result);
+          let errors = [];
+          // Pflichtfelder prüfen
+          if (!data.class) errors.push("Feld <b>class</b> fehlt.");
+          if (!Array.isArray(data.properties)) errors.push("Feld <b>properties</b> fehlt oder ist kein Array.");
+          if (!Array.isArray(data.methods)) errors.push("Feld <b>methods</b> fehlt oder ist kein Array.");
+          // Methoden prüfen
+          if (Array.isArray(data.methods)) {
+            data.methods.forEach((m, i) => {
+              if (!m.name) errors.push(`Methoden-Eintrag ${i+1}: <b>name</b> fehlt.`);
+              if (!("parameters" in m)) errors.push(`Methoden-Eintrag ${i+1}: <b>parameters</b> fehlt.`);
+              if (!("returns" in m)) errors.push(`Methoden-Eintrag ${i+1}: <b>returns</b> fehlt.`);
+              if (!("description" in m)) errors.push(`Methoden-Eintrag ${i+1}: <b>description</b> fehlt.`);
+              if (!("code" in m)) errors.push(`Methoden-Eintrag ${i+1}: <b>code</b> fehlt.`);
+            });
+          }
+          // Properties prüfen
+          if (Array.isArray(data.properties)) {
+            data.properties.forEach((p, i) => {
+              if (!p.name) errors.push(`Property-Eintrag ${i+1}: <b>name</b> fehlt.`);
+              if (!("type" in p)) errors.push(`Property-Eintrag ${i+1}: <b>type</b> fehlt.`);
+              if (!("description" in p)) errors.push(`Property-Eintrag ${i+1}: <b>description</b> fehlt.`);
+            });
+          }
+          if (errors.length === 0) {
+            output.innerHTML = `<div class="ok">✅ JSON ist formal gültig und für deine 5GL-Klassenbeschreibung geeignet!</div>`;
+          } else {
+            output.innerHTML = `<div class="error">⚠️ Fehler in der JSON:<ul><li>${errors.join("</li><li>")}</li></ul></div>`;
+          }
+        } catch (err) {
+          document.getElementById("output").innerHTML = `<div class="error">⚠️ Fehler: Keine gültige JSON.<br><b>Fehler:</b> ${err.message}</div>`;
+        }
+      };
+      reader.readAsText(file);
+    };
+  </script>
+</body>
+</html>
