@@ -42,7 +42,11 @@
       if (data.properties && data.properties.length) {
         html += "<h3>Eigenschaften</h3><table><tr><th>Name</th><th>Typ</th><th>Beschreibung</th></tr>";
         data.properties.forEach(p =>
-          html += `<tr><td><b>${p.name}</b></td><td class="type">${p.type}</td><td>${p.description}</td></tr>`
+          html += `<tr>
+            <td><b>${p.name}</b></td>
+            <td class="type">${p.type}</td>
+            <td>${p.description}</td>
+          </tr>`
         );
         html += "</table>";
       }
@@ -63,3 +67,4 @@
   </script>
 </body>
 </html>
+
