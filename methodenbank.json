@@ -10,6 +10,5 @@
       "code": "if (!this.children) this.children = []; this.children.push(childNode);",
       "status": "getestet"
     }
-    // Hier kommen später weitere Methoden als weitere Objekte hinein
   ]
 }
