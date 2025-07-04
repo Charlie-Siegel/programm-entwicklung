@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>GLFenster Klassentest</title>
+  <style>
+    body { background:#eef5ff; font-family:sans-serif; margin:0; }
+    #wrapper { max-width:620px; margin:34px auto; background:#fff; border-radius:10px; box-shadow:0 2px 14px #0002; padding:28px 30px 22px 30px;}
+    h2 { color:#0287c2; margin-bottom:8px;}
+    .section { margin:17px 0 8px 0; font-size:1.11em; font-weight:600; color:#1667b6;}
+    .small { font-size:0.97em; color:#888; }
+    #methodBtns button { margin-right:9px; margin-bottom:7px;}
+    #log { background:#f5fbe8; color:#194; padding:8px 12px; border-radius:7px; margin:14px 0 13px 0; border:1px solid #b9e5b7;}
+    .glfenster {
+      position: absolute; top: 190px; left: 110px; width: 410px; min-width:220px;
+      min-height: 60px; background: #fff; box-shadow: 0 4px 18px #0002;
+      border-radius: 11px; z-index: 50; border: 1.8px solid #b5d2f6;
+      resize: both; overflow: auto; transition: box-shadow .15s;
+      display:none;
+    }
+    .glfenster.active { box-shadow: 0 6px 24px #0497fa33, 0 2px 10px #0002; }
+    .glfenster.minimized { height:34px!important; min-height:30px; overflow:hidden;}
+    .glfenster.maximized {
+      left:0!important; top:0!important; width:100vw!important; height:96vh!important;
+      min-width:100px!important; min-height:50px!important; border-radius:0;
+      z-index:999!important;
+    }
+    .titlebar {
+      height:34px; background:#eaf4fc; border-radius:11px 11px 0 0;
+      display:flex; align-items:center; padding:0 12px 0 12px; cursor:move;
+      user-select:none; font-weight:500; color:#0275b8;
+      border-bottom:1px solid #d7eafd; position:relative;
+    }
+    .titlebar .title { flex:1 1 0; font-size:1.13em; letter-spacing:.3px;}
+    .titlebar .window-btn { border:none; background:none; font-size:1.22em; margin-left:5px; cursor:pointer; color:#479; opacity:0.78;}
+    .titlebar .window-btn:hover { color:#0287c2; background:#def5ff; border-radius:5px;}
+    .glfenster .content { padding:18px 17px 16px 17px; font-size:1.08em; color:#113; min-height:32px;}
+    .resize-corner { position:absolute; right:3px; bottom:2px; width:14px; height:14px; cursor:se-resize; z-index:10;}
+    .resize-corner:after { content:""; display:block; width:100%; height:100%; background:linear-gradient(135deg, #cbe4f9 55%, #fff 100%); border-radius:2px;}
+    .minimized .content { display:none;}
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <h2>Testmodul: GLFenster</h2>
+    <div class="section">Methoden-Test</div>
+    <div class="small">
+      Klicke auf einen Button, um das Testfenster zu öffnen und die jeweilige Methode live auszuführen.
+    </div>
+    <div id="methodBtns"></div>
+    <div id="log"></div>
+  </div>
+  <div id="fenster" class="glfenster">
+    <div class="titlebar" onmousedown="startDrag(event, this.parentNode)">
+      <span class="title">GLFenster Demo</span>
+      <button class="window-btn" onclick="minFenster(event, this)">_</button>
+      <button class="window-btn" onclick="maxFenster(event, this)">□</button>
+      <button class="window-btn" onclick="closeFenster(event, this)">×</button>
+    </div>
+    <div class="content">
+      <b>Willkommen im Testfenster!</b>
+      <div class="small">Das Fenster kann alle Methoden (minimize, maximize, setTitle, setContent, moveTo, ...)</div>
+    </div>
+    <div class="resize-corner" onmousedown="startResize(event, this.parentNode)"></div>
+  </div>
+  <script>
+    const methoden = [
+      { name: "open", label: "open()", action: () => { fenster.style.display = "block"; log("open()"); } },
+      { name: "close", label: "close()", action: () => { fenster.style.display = "none"; log("close()"); } },
+      { name: "minimize", label: "minimize()", action: () => { fenster.classList.remove("maximized"); fenster.classList.add("minimized"); log("minimize()"); } },
+      { name: "maximize", label: "maximize()", action: () => { fenster.classList.remove("minimized"); fenster.classList.add("maximized"); log("maximize()"); } },
+      { name: "restore", label: "restore()", action: () => { fenster.classList.remove("maximized"); fenster.classList.remove("minimized"); log("restore()"); } },
+      { name: "setTitle", label: "setTitle(newTitle)", action: () => { let t = prompt("Neuer Titel:", fenster.querySelector(".title").textContent); if(t!==null) { fenster.querySelector(".title").textContent = t; log(`setTitle('${t}')`); } } },
+      { name: "setContent", label: "setContent(html)", action: () => { let c = prompt("Neuer Inhalt (HTML):", fenster.querySelector(".content").innerHTML); if(c!==null) { fenster.querySelector(".content").innerHTML = c; log("setContent(...)"); } } },
+      { name: "moveTo", label: "moveTo(x,y)", action: () => { let x=prompt("Neue X-Position (px):", "100"), y=prompt("Neue Y-Position (px):", "100"); if(x&&y) { fenster.style.left = x+"px"; fenster.style.top = y+"px"; log(`moveTo(${x},${y})`);} } },
+      { name: "resizeTo", label: "resizeTo(w,h)", action: () => { let w=prompt("Breite (px):", fenster.offsetWidth), h=prompt("Höhe (px):", fenster.offsetHeight); if(w&&h) { fenster.style.width = w+"px"; fenster.style.height = h+"px"; log(`resizeTo(${w},${h})`);} } },
+      { name: "print", label: "print()", action: () => { let content = fenster.querySelector(".content").innerHTML; let printWin = window.open("", "", "width=680,height=600"); printWin.document.write(`<html><head><title>Druck</title></head><body>${content}</body></html>`); printWin.document.close(); printWin.focus(); setTimeout(()=>printWin.print(), 200); log("print()"); } },
+      { name: "focus", label: "focus()", action: () => { fenster.style.zIndex = 999; log("focus()"); } }
+    ];
+
+    // Buttons erzeugen
+    let btnDiv = document.getElementById("methodBtns");
+    methoden.forEach(m => {
+      let btn = document.createElement("button");
+      btn.textContent = m.label;
+      btn.onclick = () => {
+        if(fenster.style.display!=="block") fenster.style.display = "block";
+        m.action();
+      };
+      btnDiv.appendChild(btn);
+    });
+
+    // Logfunktion
+    function log(msg) {
+      document.getElementById("log").textContent = "Letzte Aktion: " + msg;
+    }
+
+    // Fenster-Drag & Resize
+    let fenster = document.getElementById("fenster");
+    function startDrag(e, win) {
+      if (e.target.classList.contains("window-btn")) return;
+      e.preventDefault();
+      let rect = win.getBoundingClientRect();
+      let startX = e.clientX, startY = e.clientY;
+      let offsetX = startX - rect.left, offsetY = startY - rect.top;
+      function move(ev) {
+        win.style.left = (ev.clientX - offsetX) + "px";
+        win.style.top = (ev.clientY - offsetY) + "px";
+      }
+      function up() {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+      }
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    }
+    function startResize(e, win) {
+      e.preventDefault(); e.stopPropagation();
+      let startX = e.clientX, startY = e.clientY;
+      let startW = win.offsetWidth, startH = win.offsetHeight;
+      function move(ev) {
+        win.style.width = Math.max(220, startW + (ev.clientX - startX)) + "px";
+        win.style.height = Math.max(60, startH + (ev.clientY - startY)) + "px";
+      }
+      function up() {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+      }
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    }
+  </script>
+</body>
+</html>
