@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Ideenbank</title>
+  <style>
+    body { font-family: sans-serif; background: #f6faff; margin: 0;}
+    #wrapper { max-width: 830px; margin: 34px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0002; padding: 30px; }
+    h2 { color: #0287c2; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px;}
+    th, td { border: 1px solid #e0e5ee; padding: 7px 10px; }
+    th { background: #e6f2ff; }
+    .btn { background: #e6f2ff; color: #0287c2; border: none; border-radius: 5px; padding: 5px 12px; cursor: pointer;}
+    .btn:hover { background: #c8e4fa; }
+    #formDiv { margin-bottom: 18px; }
+    .small { font-size: 0.97em; color: #888;}
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <h2>Ideenbank</h2>
+    <div id="formDiv">
+      <input id="titel" placeholder="Titel" style="width:130px;">
+      <input id="kategorie" placeholder="Kategorie" style="width:110px;">
+      <input id="datum" type="date" style="width:130px;">
+      <input id="status" placeholder="Status" style="width:100px;">
+      <input id="beschreibung" placeholder="Beschreibung" style="width:210px;">
+      <button class="btn" onclick="addIdee()">➕ Hinzufügen</button>
+    </div>
+    <table id="ideenTabelle">
+      <thead>
+        <tr>
+          <th>Titel</th><th>Kategorie</th><th>Status</th><th>Datum</th><th>Beschreibung</th><th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="small">Alle Einträge werden aktuell nur im lokalen Speicher gehalten (Dateiimport/-export später möglich).</div>
+  </div>
+  <script>
+    let ideen = [];
+    function renderTabelle() {
+      let tb = document.querySelector("#ideenTabelle tbody");
+      tb.innerHTML = "";
+      for (let idee of ideen) {
+        tb.innerHTML += `<tr>
+          <td>${idee.titel}</td>
+          <td>${idee.kategorie || ""}</td>
+          <td>${idee.status || ""}</td>
+          <td>${idee.datum || ""}</td>
+          <td>${idee.beschreibung}</td>
+          <td><button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button></td>
+        </tr>`;
+      }
+    }
+    function addIdee() {
+      let titel = document.getElementById("titel").value.trim();
+      let kategorie = document.getElementById("kategorie").value.trim();
+      let datum = document.getElementById("datum").value || (new Date()).toISOString().slice(0,10);
+      let status = document.getElementById("status").value.trim() || "offen";
+      let beschreibung = document.getElementById("beschreibung").value.trim();
+      if (!titel) { alert("Bitte Titel angeben."); return; }
+      let id = (ideen.length ? Math.max(...ideen.map(i=>i.id))+1 : 1);
+      ideen.push({id, titel, kategorie, datum, status, beschreibung});
+      renderTabelle();
+      document.getElementById("titel").value = "";
+      document.getElementById("kategorie").value = "";
+      document.getElementById("status").value = "";
+      document.getElementById("beschreibung").value = "";
+    }
+    function deleteIdee(id) {
+      if (!confirm("Idee wirklich löschen?")) return;
+      ideen = ideen.filter(i => i.id !== id);
+      renderTabelle();
+    }
+    // Demo: Einige Beispielideen laden
+    ideen = [
+      {id:1, titel:"Methodenbank-Editor", kategorie:"Tool", datum:"2024-07-09", status:"offen", beschreibung:"Im Browser Methoden direkt anlegen, bearbeiten und löschen."},
+      {id:2, titel:"Code-/Doku-Export", kategorie:"Export", datum:"2024-07-09", status:"offen", beschreibung:"Automatischer Export der Methodenbank als Markdown oder HTML."},
+      {id:3, titel:"Vergleich von Methodenbanken", kategorie:"Tool", datum:"2024-07-09", status:"offen", beschreibung:"Zwei JSON-Methodenbanken auf Unterschiede prüfen und visualisieren."},
+      {id:4, titel:"Ideenlogbuch integrieren", kategorie:"Organisation", datum:"2024-07-09", status:"offen", beschreibung:"Alle Systemideen und -vorschläge werden gespeichert und können bearbeitet werden."}
+    ];
+    renderTabelle();
+  </script>
+</body>
+</html>
