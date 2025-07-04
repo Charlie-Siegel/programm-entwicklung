@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Ideenbank (Import wie echte Tabelle, Preview, Edit/Löschen direkt)</title>
+  <title>Ideenbank (Import-Review, Übernehmen/Verwerfen Buttons)</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
     #wrapper { max-width: 1100px; margin: 18px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 16px 22px 24px 22px; }
@@ -42,8 +42,8 @@
     .edit-dialog .close-x { position:absolute; right:11px; top:10px; background:none; border:none; font-size:1.2em; color:#888; cursor:pointer;}
     .edit-dialog .close-x:hover { color:#b00;}
     .edit-dialog textarea { width:100%; min-height:4em; resize:vertical; }
-    .import-hinweis { background: #fffbe6; border:1.2px solid #e5e2b8; color:#977600; border-radius:7px; padding:8px 18px 6px 18px; margin:10px 0 13px 0;}
     .imported-row { background: #fffde0 !important; }
+    #importBtnBar { margin-top:7px; }
     @media (max-width: 700px) {
       .edit-dialog { width:98vw; padding:10px 3vw 10px 3vw; }
       .edit-dialog-fields { gap: 10px 6px; }
@@ -52,7 +52,7 @@
 </head>
 <body>
   <div id="wrapper">
-    <h2>Ideenbank <span class="small">(Import: Vorschau, Edit, Löschen direkt!)</span></h2>
+    <h2>Ideenbank <span class="small">(Import-Review, Übernehmen/Verwerfen)</span></h2>
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:120px;">
       <select id="kategorie" style="width:112px;"></select>
@@ -73,7 +73,6 @@
       <input type="file" id="importFile" accept=".json" style="display:none">
       <span style="float:right" class="small" id="autosaveMsg"></span>
     </div>
-    <div id="importPreview"></div>
     <table id="ideenTabelle">
       <thead>
         <tr>
@@ -92,7 +91,7 @@
     <div class="small">
       Prio: <span class="prio-hoch">hoch</span> | <span class="prio-mittel">mittel</span> | <span class="prio-niedrig">niedrig</span>
     </div>
-    <div id="importBtnBar" style="margin-top:7px;"></div>
+    <div id="importBtnBar"></div>
   </div>
 
   <div id="editDialogBG" class="edit-dialog-bg" style="display:none;">
@@ -136,7 +135,6 @@
     let sortAsc = false;
     let editIdx = null;
     let importBuffer = [];
-    let importedIDs = [];
 
     document.getElementById('importFile').onchange = function(e) {
       let file = e.target.files[0];
@@ -150,7 +148,6 @@
           importBuffer = data.ideen.filter(imp =>
             !ideen.some(existing => existing.id === imp.id || (existing.titel === imp.titel && existing.beschreibung === imp.beschreibung))
           ).map(i=>({...i,importiert:true}));
-          importedIDs = importBuffer.map(i=>String(i.id));
           kategorien = Array.isArray(data.kategorien) ? data.kategorien : kategorien;
           stati = Array.isArray(data.stati) ? data.stati : stati;
           renderDropdowns();
@@ -243,7 +240,7 @@
       let d = document.getElementById("importBtnBar");
       if(!importBuffer.length) { d.innerHTML = ""; return; }
       d.innerHTML = `
-        <div class="import-hinweis">
+        <div class="imported-row" style="padding:10px; border-radius:7px; margin-top:6px; border:1.2px solid #e5e2b8;">
           <b>${importBuffer.length} importierte (gelbe) Ideen – prüfen, bearbeiten oder löschen!</b>
           <button class="btn" onclick="acceptImport()">Alle übernehmen</button>
           <button class="btn" onclick="cancelImport()">Alle verwerfen</button>
@@ -256,14 +253,12 @@
         ideen.push(kopie);
       });
       importBuffer = [];
-      importedIDs = [];
       renderTabelle();
       renderImportBtnBar();
       autosave();
     }
     function cancelImport() {
       importBuffer = [];
-      importedIDs = [];
       renderTabelle();
       renderImportBtnBar();
     }
