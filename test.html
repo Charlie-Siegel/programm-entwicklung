@@ -2,54 +2,10 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Logbuch Test</title>
-  <script src="logbuch.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    button { margin: 5px; }
-    pre { background: #f0f0f0; padding: 10px; }
-  </style>
+  <title>Testumgebung</title>
 </head>
 <body>
-
-<h2>📘 Logbuch-Test</h2>
-
-<button onclick="createTestAttribute()">➕ Attribut anlegen</button>
-<button onclick="deleteTestMethod()">❌ Methode löschen</button>
-<button onclick="showLog()">🔍 Logbuch anzeigen</button>
-<button onclick="downloadLogbuch()">📥 Logbuch herunterladen</button>
-
-<h3>Aktuelles Logbuch:</h3>
-<pre id="logOutput">(noch leer)</pre>
-
-<script>
-function createTestAttribute() {
-  addLogEntry({
-    action: "create",
-    type: "attribute",
-    name: "testAttribute",
-    details: "Test-Attribut erstellt",
-    user: "Charlie"
-  });
-  showLog();
-}
-
-function deleteTestMethod() {
-  addLogEntry({
-    action: "delete",
-    type: "method",
-    name: "obsoleteMethod",
-    details: "Test-Methode entfernt",
-    user: "Charlie"
-  });
-  showLog();
-}
-
-function showLog() {
-  const output = document.getElementById("logOutput");
-  output.textContent = JSON.stringify(getLogEntries(), null, 2);
-}
-</script>
-
+  <h2>Testseite ist geladen!</h2>
+  <button onclick="alert('Hallo, Test erfolgreich!')">Test-Button</button>
 </body>
 </html>
