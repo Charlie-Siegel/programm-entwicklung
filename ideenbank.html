@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Ideenbank (mit Priorität)</title>
+  <title>Ideenbank (mit Editieren & Prio)</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
     #wrapper { max-width: 1100px; margin: 18px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 16px 22px 24px 22px; }
@@ -10,6 +10,7 @@
     table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
     th, td { border: 1px solid #e0e5ee; padding: 6px 9px; }
     th { background: #e6f2ff; cursor:pointer; user-select:none; font-weight:500; font-size:1em; }
+    .sort-arrow { margin-left:3px; font-size:0.93em;}
     .btn { background: #e6f2ff; color: #0287c2; border: none; border-radius: 5px; padding: 5px 12px; cursor: pointer;}
     .btn:hover { background: #c8e4fa; }
     #formDiv { margin-bottom: 10px; }
@@ -24,11 +25,27 @@
     .prio-niedrig { color:#097c22; font-weight:bold; }
     #prio { width:100px;}
     #searchBox { width:250px; padding:5px 11px; margin:0 14px 7px 0; border-radius:8px; border:1px solid #cbe4f9;}
+    .edit-btn { font-size: 1.1em; padding: 2px 5px; }
+    .edit-dialog-bg {
+      position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:30; background:#0006;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .edit-dialog {
+      background:#fff; border-radius:13px; box-shadow:0 7px 36px #0004; padding:19px 32px 16px 32px; min-width:320px;
+      display:flex; flex-direction:column; gap:7px; position:relative;
+      animation: popupIn .14s;
+    }
+    @keyframes popupIn { from {transform:scale(0.93); opacity:0.1;} to{transform:scale(1);opacity:1;} }
+    .edit-dialog label { font-size:1em; color:#126;}
+    .edit-dialog input, .edit-dialog select, .edit-dialog textarea { font-size:1em; margin-top:2px; border-radius:6px; border:1px solid #b7cee7; padding:6px 8px; }
+    .edit-dialog-actions { margin-top:7px; text-align:right;}
+    .edit-dialog .close-x { position:absolute; right:11px; top:10px; background:none; border:none; font-size:1.2em; color:#888; cursor:pointer;}
+    .edit-dialog .close-x:hover { color:#b00;}
   </style>
 </head>
 <body>
   <div id="wrapper">
-    <h2>Ideenbank <span class="small">(mit Priorität)</span></h2>
+    <h2>Ideenbank <span class="small">(Editieren & Priorität)</span></h2>
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:120px;">
       <select id="kategorie" style="width:112px;"></select>
@@ -52,13 +69,13 @@
     <table id="ideenTabelle">
       <thead>
         <tr>
-          <th onclick="sortTable('nr')">#</th>
-          <th onclick="sortTable('titel')">Titel</th>
-          <th onclick="sortTable('kategorie')">Kategorie</th>
-          <th onclick="sortTable('status')">Status</th>
-          <th onclick="sortTable('prio')">Prio</th>
-          <th onclick="sortTable('datum')">Datum</th>
-          <th onclick="sortTable('beschreibung')">Beschreibung</th>
+          <th onclick="sortTable('nr')">#<span id="arrow-nr" class="sort-arrow"></span></th>
+          <th onclick="sortTable('titel')">Titel<span id="arrow-titel" class="sort-arrow"></span></th>
+          <th onclick="sortTable('kategorie')">Kategorie<span id="arrow-kategorie" class="sort-arrow"></span></th>
+          <th onclick="sortTable('status')">Status<span id="arrow-status" class="sort-arrow"></span></th>
+          <th onclick="sortTable('prio')">Prio<span id="arrow-prio" class="sort-arrow"></span></th>
+          <th onclick="sortTable('datum')">Datum<span id="arrow-datum" class="sort-arrow"></span></th>
+          <th onclick="sortTable('beschreibung')">Beschreibung<span id="arrow-beschreibung" class="sort-arrow"></span></th>
           <th></th>
         </tr>
       </thead>
@@ -68,12 +85,45 @@
       Prio: <span class="prio-hoch">hoch</span> | <span class="prio-mittel">mittel</span> | <span class="prio-niedrig">niedrig</span>
     </div>
   </div>
+
+  <div id="editDialogBG" class="edit-dialog-bg" style="display:none;">
+    <div class="edit-dialog">
+      <button class="close-x" onclick="closeEditDialog()">&times;</button>
+      <h3>Idee bearbeiten</h3>
+      <form id="editForm">
+        <label>Titel: <input id="editTitel"></label>
+        <label>Kategorie:
+          <select id="editKategorie"></select>
+        </label>
+        <label>Status:
+          <select id="editStatus"></select>
+        </label>
+        <label>Prio:
+          <select id="editPrio">
+            <option value="hoch" class="prio-hoch">hoch ★</option>
+            <option value="mittel" class="prio-mittel">mittel</option>
+            <option value="niedrig" class="prio-niedrig">niedrig</option>
+          </select>
+        </label>
+        <label>Datum: <input id="editDatum" type="date"></label>
+        <label>Beschreibung:<br>
+          <textarea id="editBeschreibung" rows="2"></textarea>
+        </label>
+        <div class="edit-dialog-actions">
+          <button type="button" class="btn" onclick="saveEditDialog()">Speichern</button>
+          <button type="button" class="btn" onclick="closeEditDialog()">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     let ideen = [];
     let kategorien = ["Tool", "Export", "Organisation"];
     let stati = ["offen", "in Arbeit", "erledigt", "wichtig"];
     let sortColumn = 'prio';
     let sortAsc = false; // Prio absteigend (hoch zuerst)
+    let editIdx = null; // Aktuell bearbeitete Idee
 
     // --- Import/Upgrade für alte JSON ohne prio ---
     document.getElementById('importFile').onchange = function(e) {
@@ -84,7 +134,6 @@
         try {
           let data = JSON.parse(evt.target.result);
           if (!data.ideen || !Array.isArray(data.ideen)) throw new Error("Formatfehler: Array 'ideen' fehlt!");
-          // Alle alten Einträge OHNE prio bekommen "mittel"
           data.ideen.forEach(i => { if (!i.prio) i.prio = "mittel"; });
           ideen = data.ideen;
           kategorien = Array.isArray(data.kategorien) ? data.kategorien : kategorien;
@@ -154,8 +203,19 @@
           <td class="${prioClass(idee.prio)}">${idee.prio||"mittel"}</td>
           <td>${idee.datum || ""}</td>
           <td>${idee.beschreibung}</td>
-          <td><button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button></td>
+          <td>
+            <button class="btn edit-btn" title="Bearbeiten" onclick="openEditDialog(${ideen.indexOf(idee)})">✏️</button>
+            <button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button>
+          </td>
         </tr>`;
+      });
+      // Sortier-Pfeile setzen
+      let allCols = ["nr","titel","kategorie","status","prio","datum","beschreibung"];
+      allCols.forEach(col=>{
+        let el = document.getElementById("arrow-"+col);
+        if(!el) return;
+        if(col===sortColumn) el.innerHTML = sortAsc ? "▲" : "▼";
+        else el.innerHTML = "";
       });
     }
 
@@ -178,6 +238,41 @@
     function deleteIdee(id) {
       if (!confirm("Idee wirklich löschen?")) return;
       ideen = ideen.filter(i => i.id !== id);
+      renderTabelle();
+      autosave();
+    }
+
+    // Editieren
+    function openEditDialog(idx) {
+      editIdx = idx;
+      let idee = ideen[idx];
+      document.getElementById("editTitel").value = idee.titel || "";
+      let selKat = document.getElementById("editKategorie");
+      selKat.innerHTML = "";
+      kategorien.forEach(k => selKat.innerHTML += `<option ${idee.kategorie===k?'selected':''}>${k}</option>`);
+      let selStat = document.getElementById("editStatus");
+      selStat.innerHTML = "";
+      stati.forEach(s => selStat.innerHTML += `<option ${idee.status===s?'selected':''}>${s}</option>`);
+      document.getElementById("editPrio").value = idee.prio || "mittel";
+      document.getElementById("editDatum").value = idee.datum || "";
+      document.getElementById("editBeschreibung").value = idee.beschreibung || "";
+      document.getElementById("editDialogBG").style.display = "flex";
+    }
+    function closeEditDialog() {
+      document.getElementById("editDialogBG").style.display = "none";
+      editIdx = null;
+    }
+    function saveEditDialog() {
+      let idx = editIdx;
+      if (idx===null) return;
+      let idee = ideen[idx];
+      idee.titel = document.getElementById("editTitel").value.trim();
+      idee.kategorie = document.getElementById("editKategorie").value;
+      idee.status = document.getElementById("editStatus").value;
+      idee.prio = document.getElementById("editPrio").value;
+      idee.datum = document.getElementById("editDatum").value;
+      idee.beschreibung = document.getElementById("editBeschreibung").value.trim();
+      closeEditDialog();
       renderTabelle();
       autosave();
     }
