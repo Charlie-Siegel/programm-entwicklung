@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>SHV Social Media Redaktionsplan</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #bbb; padding: 8px; }
+    th { background: #e0e0e0; }
+    tr:nth-child(even) { background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>SHV Social Media Redaktionsplan</h1>
+  <table id="postsTable">
+    <thead>
+      <tr>
+        <th>Titel</th>
+        <th>Geplant am</th>
+        <th>Plattform(en)</th>
+        <th>Status</th>
+        <th>Kategorie</th>
+        <th>Zielgruppen</th>
+        <th>Autor</th>
+        <th>Webseite</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // Beispiel-Daten: Beiträge als JSON
+    const posts = [
+      {
+        "id": "beitrag001",
+        "titel": "Erfolgreiches Seminar in Stuttgart",
+        "kurztext": "Unser SHV-Seminar war ein voller Erfolg.",
+        "datum_geplant": "2025-07-15",
+        "plattformen": ["facebook", "linkedin"],
+        "status": "veröffentlicht",
+        "kategorie": "Veranstaltung",
+        "zielgruppen": ["angehoerige", "fachpublikum"],
+        "autor": "Karl-Eugen Siegel",
+        "link_zur_webseite": "https://shv-forum-gehirn.de/seminar-2025"
+      },
+      {
+        "id": "beitrag002",
+        "titel": "Neue Broschüre erschienen",
+        "kurztext": "Unsere neue Infobroschüre ist online.",
+        "datum_geplant": "2025-07-22",
+        "plattformen": ["facebook", "instagram"],
+        "status": "geplant",
+        "kategorie": "Publikation",
+        "zielgruppen": ["oeffentlichkeit"],
+        "autor": "Karl-Eugen Siegel",
+        "link_zur_webseite": "https://shv-forum-gehirn.de/broschuere-2025"
+      }
+    ];
+
+    // Hilfsfunktionen für Listenfelder
+    function arr2str(arr) {
+      return Array.isArray(arr) ? arr.join(", ") : "";
+    }
+
+    // Tabelle befüllen
+    const tbody = document.querySelector("#postsTable tbody");
+    posts.forEach(post => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${post.titel}</td>
+        <td>${post.datum_geplant}</td>
+        <td>${arr2str(post.plattformen)}</td>
+        <td>${post.status}</td>
+        <td>${post.kategorie}</td>
+        <td>${arr2str(post.zielgruppen)}</td>
+        <td>${post.autor}</td>
+        <td><a href="${post.link_zur_webseite}" target="_blank">Link</a></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  </script>
+</body>
+</html>
