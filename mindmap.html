@@ -8,8 +8,9 @@
     #canvas { width: 100vw; height: 92vh; background: #eef6fa; position:relative; overflow: hidden; }
     .node {
       position: absolute;
-      min-width: 100px;
-      padding: 12px 20px;
+      min-width: 120px;
+      max-width: 220px;
+      padding: 10px 18px;
       border-radius: 16px;
       background: #fff;
       box-shadow: 0 2px 8px #0002;
@@ -19,17 +20,19 @@
       border: 2px solid #78befa;
       font-weight: bold;
       font-size: 1em;
+      transition: box-shadow 0.1s;
     }
-    .node.selected { border-color: #ff7b00; }
+    .node.selected { border-color: #ff7b00; box-shadow: 0 0 8px #ffa50077; }
     .toolbar { padding: 8px; background: #eee;}
     button { margin-right: 10px; }
-    .node-edit { font-size:0.9em; background: #f7f7f7; border-radius:8px; margin-top:6px; }
-    .add-btn { font-size:0.9em; margin-left: 5px; }
+    .btn { font-size: 1em; background: none; border: none; cursor: pointer; padding: 2px 6px; }
+    .btn:active { background: #e5e5e5; border-radius: 6px; }
+    .comment { font-size:0.9em; color:#2681c0; margin-top:6px; white-space:pre-line;}
   </style>
 </head>
 <body>
   <div class="toolbar">
-    <button onclick="addNode()">➕ Knoten hinzufügen</button>
+    <button onclick="addNodePrompt()">➕ Knoten hinzufügen</button>
     <button onclick="downloadMap()">💾 Speichern</button>
     <button onclick="document.getElementById('fileInput').click()">📂 Laden</button>
     <input type="file" id="fileInput" style="display:none" accept=".json">
@@ -84,61 +87,46 @@
       });
       canvas.appendChild(svg);
 
-      // Nodes
       mindmap.nodes.forEach(n => {
         let div = document.createElement("div");
         div.className = "node";
         div.style.left = n.x + "px";
         div.style.top = n.y + "px";
-        div.textContent = n.title;
-        div.draggable = false;
-        div.onclick = e => { selectNode(n.id); e.stopPropagation(); };
+        div.innerHTML = `
+          <span>${escapeHTML(n.title)}</span>
+          <button class="btn" onclick="editNode(${n.id});event.stopPropagation();">✏️</button>
+          ${n.id !== 1 ? `<button class="btn" onclick="deleteNode(${n.id});event.stopPropagation();">🗑️</button>` : ""}
+          <button class="btn" onclick="addChildNode(${n.id});event.stopPropagation();">➕</button>
+          <div class="comment">${n.comment ? escapeHTML(n.comment) : "<span style='color:#bbb;'>(kein Kommentar)</span>"}</div>
+        `;
+        // Drag&Drop
         div.onmousedown = e => {
+          if(e.target.tagName==="BUTTON") return;
           dragNode = n;
           offsetX = e.offsetX;
           offsetY = e.offsetY;
           div.classList.add("selected");
         };
         div.onmouseup = e => { dragNode = null; div.classList.remove("selected"); };
-        div.onmousemove = e => {
-          if (dragNode === n) {
-            n.x = e.clientX - offsetX;
-            n.y = e.clientY - offsetY - document.querySelector(".toolbar").offsetHeight;
-            render();
-          }
-        };
-        // Edit/Del-Icons als kleine Buttons
-        let edit = document.createElement("span");
-        edit.className = "add-btn";
-        edit.textContent = "✏️";
-        edit.title = "Bearbeiten";
-        edit.onclick = ev => { editNode(n.id); ev.stopPropagation(); };
-        let del = document.createElement("span");
-        del.className = "add-btn";
-        del.textContent = "🗑️";
-        del.title = "Löschen";
-        del.onclick = ev => { deleteNode(n.id); ev.stopPropagation(); };
-        div.appendChild(edit);
-        if(n.id !== 1) div.appendChild(del);
         canvas.appendChild(div);
       });
     }
 
-    function selectNode(id) {
-      mindmap.nodes.forEach(n => n.selected = n.id === id);
-      render();
-    }
-
-    function addNode() {
-      const parentNodes = mindmap.nodes.filter(n => true);
+    // --- Interaktion
+    function addNodePrompt() {
       let parent = prompt("Zu welchem Knoten soll der neue Ast gehören? Gib die ID ein (z.B. 1 für Root):", "1");
-      if(!parentNodes.some(n => n.id == parent)) { alert("ID nicht gefunden!"); return;}
+      if(!mindmap.nodes.some(n => n.id == parent)) { alert("ID nicht gefunden!"); return;}
       let title = prompt("Titel des neuen Knotens?");
       if (!title) return;
       mindmap.nodes.push({id: nodeId++, title: title, x: 350+Math.random()*100, y: 200+Math.random()*100, comment:"", parent: Number(parent)});
       render();
     }
-
+    function addChildNode(parentId) {
+      let title = prompt("Titel des neuen Unter-Knotens?");
+      if (!title) return;
+      mindmap.nodes.push({id: nodeId++, title: title, x: 350+Math.random()*100, y: 200+Math.random()*100, comment:"", parent: parentId});
+      render();
+    }
     function editNode(id) {
       let n = mindmap.nodes.find(nn=>nn.id===id);
       let title = prompt("Neuer Name des Knotens:", n.title);
@@ -147,7 +135,6 @@
       if(comment !== null) n.comment = comment;
       render();
     }
-
     function deleteNode(id) {
       if (!confirm("Knoten und alle darunter löschen?")) return;
       const removeRec = id => {
@@ -158,7 +145,7 @@
       render();
     }
 
-    // Drag&Drop global (für bessere Usability)
+    // Drag&Drop global
     document.body.onmousemove = function(e) {
       if (!dragNode) return;
       dragNode.x = e.clientX - offsetX;
@@ -187,6 +174,9 @@
       };
       reader.readAsText(file);
     };
+
+    // Hilfsfunktion
+    function escapeHTML(str) { return (str||"").replace(/[&<>"]/g, ch=>({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[ch])); }
 
     // Initial Render
     render();
