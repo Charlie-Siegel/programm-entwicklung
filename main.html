@@ -90,24 +90,16 @@
       <div class="dropdown-content">
         <div class="dropdown-link" onclick="loadPage('JSON-Klassen.html')">JSON-Klassenbeschreibung</div>
         <div class="dropdown-link" onclick="loadPage('generator_ui.html')">Code-Generator</div>
+        <div class="dropdown-link" onclick="loadPage('json_klassenpruefer.html')">Klassen-JSON prüfen</div>
       </div>
     </div>
   </nav>
   <div id="mainContent">
-    <div id="welcomeText">
-      <h2>Willkommen zum 5GL-Projekt!</h2>
-      <p>Bitte wähle eine Funktion im Menü:<br>
-        <b>Testumgebung</b> – lädt <code>test.html</code> (falls vorhanden, sonst Hinweis).<br>
-        <b>Dokumentation</b> – Auswahl für JSON- und Code-Tools.<br>
-        <b>Leer</b> – entfernt eingebetteten Inhalt.<br>
-      </p>
-    </div>
     <div id="iframeBox"></div>
   </div>
   <script>
     function loadPage(filename) {
       clearIframe();
-      document.getElementById("welcomeText").style.display = "none";
       let iframe = document.createElement("iframe");
       iframe.src = filename;
       iframe.onload = function() {
@@ -134,7 +126,6 @@
     }
     function showError(msg) {
       clearIframe();
-      document.getElementById("welcomeText").style.display = "none";
       let box = document.getElementById("iframeBox");
       let err = document.createElement("div");
       err.innerHTML = `<div style="color:#b00; background:#fce0e0; border-radius:8px; padding:18px 20px; margin:16px 0; border:2px solid #ea8a8a; font-size:1.11em;"><b>Fehler:</b> ${msg}</div>`;
@@ -142,7 +133,6 @@
     }
     function clearIframe() {
       document.getElementById("iframeBox").innerHTML = "";
-      document.getElementById("welcomeText").style.display = "";
     }
   </script>
 </body>
