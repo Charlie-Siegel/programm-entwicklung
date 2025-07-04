@@ -5,7 +5,7 @@
   <title>Ideenbank</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
-    #wrapper { max-width: 1000px; margin: 36px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 32px; }
+    #wrapper { max-width: 1050px; margin: 36px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 32px; }
     h2 { color: #0287c2; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
     th, td { border: 1px solid #e0e5ee; padding: 7px 10px; }
@@ -33,8 +33,10 @@
     .dialog-actions { padding:12px 24px 2px 24px;}
     .close-x { color:#888; background:none; border:none; font-size:1.3em; cursor:pointer; font-weight:bold;}
     .close-x:hover { color:#c00;}
-    .import-vorschau-table td, .import-vorschau-table th { font-size:0.98em; }
     #fixedclock { position:fixed; right:24px; bottom:12px; background:#e8eafc; color:#048; padding:4px 16px 4px 14px; border-radius:15px 17px; box-shadow:0 2px 8px #aaa2; font-size:1.04em; z-index:10; }
+    .import-buttons { margin-bottom:20px; }
+    .imported-row { background:#fffbe6 !important; }
+    .import-buttons .btn { font-size:1.08em; margin-right:14px; margin-bottom:7px; }
     @keyframes popupIn { from {transform:scale(0.94); opacity:0.1;} to{transform:scale(1);opacity:1;}}
   </style>
 </head>
@@ -57,6 +59,11 @@
       <input type="file" id="importFile" accept=".json" style="display:none">
       <span style="float:right" class="small" id="autosaveMsg"></span>
     </div>
+    <div id="importButtonsBox" class="import-buttons" style="display:none;">
+      <button class="btn" onclick="importUebernehmen()">Import übernehmen</button>
+      <button class="btn" onclick="importAbbrechen()">Import abbrechen</button>
+      <span class="small">Importierte Ideen sind gelb markiert.</span>
+    </div>
     <table id="ideenTabelle">
       <thead>
         <tr>
@@ -66,7 +73,7 @@
       <tbody></tbody>
     </table>
     <div class="small">Status/Kategorien können über ⚙️ verwaltet werden. Exportiert wird im 5GL-Format.<br>
-      <b>Tipp:</b> Beim Import gibt es jetzt eine Vorschau!
+      <b>Tipp:</b> Importierte Ideen sind gelb markiert und müssen erst übernommen werden.
     </div>
   </div>
   <div id="fixedclock"></div>
@@ -83,25 +90,10 @@
       <button class="btn" onclick="closeCatstat()">Schließen</button>
     </div>
   </div>
-  <!-- Import-Preview Dialog -->
-  <div class="dialog" id="importDialog">
-    <div class="dialog-title">
-      <span>Import-Vorschau</span>
-      <button class="close-x" onclick="closeImportDialog()" title="Abbrechen">×</button>
-    </div>
-    <div class="dialog-content">
-      <div id="importTableBox"></div>
-    </div>
-    <div class="dialog-actions">
-      <button class="btn" onclick="importUebernehmen()">Alle übernehmen</button>
-      <button class="btn" onclick="closeImportDialog()">Abbrechen</button>
-    </div>
-  </div>
   <script>
     let ideen = [];
     let kategorien = ["Tool", "Export", "Organisation"];
     let stati = ["offen", "in Arbeit", "erledigt", "wichtig"];
-    let importVorschauIdeen = [];
 
     // --- Uhrzeit/Datum anzeigen ---
     function showFixedClock() {
@@ -113,11 +105,9 @@
     showFixedClock();
 
     function renderDropdowns() {
-      // Kategorie
       let selKat = document.getElementById("kategorie");
       selKat.innerHTML = "";
       kategorien.forEach(k => selKat.innerHTML += `<option>${k}</option>`);
-      // Status
       let selStat = document.getElementById("status");
       selStat.innerHTML = "";
       stati.forEach(s => selStat.innerHTML += `<option>${s}</option>`);
@@ -126,8 +116,11 @@
     function renderTabelle() {
       let tb = document.querySelector("#ideenTabelle tbody");
       tb.innerHTML = "";
+      let hasImported = false;
       for (let idee of ideen) {
-        tb.innerHTML += `<tr>
+        let isImported = idee.importiert === true;
+        if(isImported) hasImported = true;
+        tb.innerHTML += `<tr class="${isImported ? "imported-row" : ""}">
           <td>${idee.titel}</td>
           <td>${idee.kategorie || ""}</td>
           <td>${idee.status || ""}</td>
@@ -136,6 +129,8 @@
           <td><button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button></td>
         </tr>`;
       }
+      // Import-Buttons anzeigen, falls importierte Ideen da sind
+      document.getElementById("importButtonsBox").style.display = hasImported ? "block" : "none";
     }
 
     function addIdee() {
@@ -161,8 +156,14 @@
     }
 
     function exportIdeen() {
+      // Beim Export werden "importiert" Markierungen entfernt!
+      let cleanIdeen = ideen.map(i => {
+        let o = {...i};
+        delete o.importiert;
+        return o;
+      });
       let blob = new Blob([JSON.stringify({
-        ideen,
+        ideen: cleanIdeen,
         kategorien,
         stati
       }, null, 2)], {type:"application/json"});
@@ -182,9 +183,23 @@
         try {
           let data = JSON.parse(evt.target.result);
           if (!data.ideen || !Array.isArray(data.ideen)) throw new Error("Formatfehler: Array 'ideen' fehlt!");
-          // Kategories und Status sammeln (noch nicht übernehmen)
-          importVorschauIdeen = data.ideen.map(idee => Object.assign({}, idee));
-          showImportPreview();
+          // Neue Kategorien und Stati aus Import ergänzen:
+          if (Array.isArray(data.kategorien)) {
+            data.kategorien.forEach(kat => { if (!kategorien.includes(kat)) kategorien.push(kat); });
+          }
+          if (Array.isArray(data.stati)) {
+            data.stati.forEach(stat => { if (!stati.includes(stat)) stati.push(stat); });
+          }
+          // Importierte Ideen (IDs neu vergeben, importiert markieren)
+          let nextId = ideen.length ? Math.max(...ideen.map(i=>i.id)) + 1 : 1;
+          data.ideen.forEach((idee, idx) => {
+            idee.id = nextId++;
+            idee.importiert = true;
+            ideen.push(idee);
+          });
+          renderDropdowns();
+          renderTabelle();
+          autosave();
         } catch (err) {
           alert("Fehler beim Importieren:\n" + err.message);
         }
@@ -192,53 +207,16 @@
       reader.readAsText(file);
     };
 
-    // --- Import-Vorschau ---
-    function showImportPreview() {
-      document.getElementById("importDialog").style.display = "block";
-      renderImportVorschauTable();
-    }
-    function renderImportVorschauTable() {
-      let box = document.getElementById("importTableBox");
-      if (!importVorschauIdeen.length) { box.innerHTML = "<i>Keine Ideen zu importieren.</i>"; return; }
-      let html = `<table class="import-vorschau-table"><thead>
-        <tr><th>Titel</th><th>Kategorie</th><th>Status</th><th>Datum</th><th>Beschreibung</th><th></th></tr></thead><tbody>`;
-      importVorschauIdeen.forEach((idee, idx) => {
-        html += `<tr>
-          <td>${idee.titel}</td>
-          <td>${idee.kategorie || ""}</td>
-          <td>${idee.status || ""}</td>
-          <td>${idee.datum || ""}</td>
-          <td>${idee.beschreibung}</td>
-          <td><button class="btn" onclick="importRemove(${idx})">🗑️</button></td>
-        </tr>`;
-      });
-      html += "</tbody></table>";
-      box.innerHTML = html;
-    }
-    function importRemove(idx) {
-      importVorschauIdeen.splice(idx, 1);
-      renderImportVorschauTable();
-    }
-    function closeImportDialog() {
-      document.getElementById("importDialog").style.display = "none";
-      importVorschauIdeen = [];
-    }
+    // --- Import-Workflow: Übernehmen/Abbrechen ---
     function importUebernehmen() {
-      // Ergänze neue Kategorien und Stati
-      importVorschauIdeen.forEach(idee => {
-        if (idee.kategorie && !kategorien.includes(idee.kategorie)) kategorien.push(idee.kategorie);
-        if (idee.status && !stati.includes(idee.status)) stati.push(idee.status);
-      });
-      // IDs sauber vergeben
-      let nextId = ideen.length ? Math.max(...ideen.map(i=>i.id)) + 1 : 1;
-      importVorschauIdeen.forEach((idee, idx) => {
-        idee.id = nextId++;
-        ideen.push(idee);
-      });
-      renderDropdowns();
+      ideen.forEach(i => { if(i.importiert) delete i.importiert; });
       renderTabelle();
       autosave();
-      closeImportDialog();
+    }
+    function importAbbrechen() {
+      ideen = ideen.filter(i => !i.importiert);
+      renderTabelle();
+      autosave();
     }
 
     // --- Verwaltung Kategorien/Status (Dialog-Design) ---
@@ -310,7 +288,13 @@
 
     // --- Autosave ---
     function autosave() {
-      let obj = {ideen, kategorien, stati};
+      // importiert-Feld nicht mitspeichern!
+      let cleanIdeen = ideen.map(i => {
+        let o = {...i};
+        delete o.importiert;
+        return o;
+      });
+      let obj = {ideen: cleanIdeen, kategorien, stati};
       localStorage.setItem("ideenbank5GL", JSON.stringify(obj));
       document.getElementById("autosaveMsg").textContent = "Gespeichert " + (new Date()).toLocaleTimeString();
     }
