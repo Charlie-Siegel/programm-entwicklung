@@ -2,23 +2,97 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>5GL Mindmap Debug2</title>
+  <title>5GL Mindmap – Einzelne Box</title>
+  <style>
+    #canvas { width: 100vw; height: 85vh; background: #eef6fa; position:relative; overflow: hidden; }
+    .node {
+      position: absolute;
+      min-width: 160px;
+      max-width: 240px;
+      padding: 20px 20px 16px 20px;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 2px 8px #0002;
+      cursor: move;
+      text-align: center;
+      user-select: none;
+      border: 2px solid #78befa;
+      font-weight: bold;
+      font-size: 1.1em;
+      transition: box-shadow 0.1s;
+      top: 100px;
+      left: 150px;
+    }
+  </style>
 </head>
 <body>
-  <h2 id="header">5GL Mindmap Testversion</h2>
-  <button onclick="alert('Mindmap-Loader läuft!')">Test-Button</button>
-  <div id="info"></div>
+  <h2 id="header"></h2>
+  <div id="canvas"></div>
   <script>
-    // Zeigt die aktuelle Uhrzeit im Header an
+    // Zeigt die aktuelle Uhrzeit im Header
     document.getElementById("header").textContent =
-      "5GL Mindmap Debug2 | " + new Date().toLocaleString();
+      "5GL Mindmap – Box-Test | " + new Date().toLocaleString();
 
-    // Schreibe einen weiteren Testtext unter den Button
-    document.getElementById("info").textContent =
-      "Wenn du das hier liest UND der Button funktioniert, läuft dein JS einwandfrei!";
+    // Ein einzelner Knoten
+    let node = {
+      title: "Mein erster Knoten (zieh mich mit der Maus!)",
+      x: 200,
+      y: 120
+    };
 
-    // Debug-Kontrolle: Pop-up beim Laden
-    alert("JS wurde erfolgreich ausgeführt! (mindmap_debug2.html)");
+    // Zeichne die Box auf das Canvas
+    function render() {
+      const canvas = document.getElementById('canvas');
+      canvas.innerHTML = '';
+      let div = document.createElement("div");
+      div.className = "node";
+      div.textContent = node.title;
+      div.style.left = node.x + "px";
+      div.style.top = node.y + "px";
+      canvas.appendChild(div);
+
+      // Drag & Drop
+      let dragging = false, offsetX = 0, offsetY = 0;
+      div.onmousedown = function(e) {
+        dragging = true;
+        offsetX = e.offsetX;
+        offsetY = e.offsetY;
+        div.style.boxShadow = "0 0 16px #00bcd47c";
+      };
+      document.onmousemove = function(e) {
+        if (dragging) {
+          node.x = e.clientX - offsetX;
+          node.y = e.clientY - offsetY - document.getElementById('header').offsetHeight;
+          render();
+        }
+      };
+      document.onmouseup = function() {
+        dragging = false;
+        div.style.boxShadow = "";
+      };
+      // Für Touch (iPad & Co.)
+      div.ontouchstart = function(e) {
+        dragging = true;
+        let touch = e.touches[0];
+        offsetX = touch.clientX - node.x;
+        offsetY = touch.clientY - node.y;
+        div.style.boxShadow = "0 0 16px #00bcd47c";
+      };
+      document.ontouchmove = function(e) {
+        if (dragging) {
+          let touch = e.touches[0];
+          node.x = touch.clientX - offsetX;
+          node.y = touch.clientY - offsetY;
+          render();
+        }
+      };
+      document.ontouchend = function() {
+        dragging = false;
+        div.style.boxShadow = "";
+      };
+    }
+
+    render();
   </script>
 </body>
 </html>
