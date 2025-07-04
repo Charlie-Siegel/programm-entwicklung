@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>5GL Mindmap – Einzelne Box</title>
+  <title>5GL Mindmap – Einzelne Box (Touch Fix, statischer Zeitstempel)</title>
   <style>
     #canvas { width: 100vw; height: 85vh; background: #eef6fa; position:relative; overflow: hidden; }
     .node {
@@ -23,24 +23,20 @@
       top: 100px;
       left: 150px;
     }
+    #header { margin: 0; padding: 14px 30px; font-size: 1.35em; color: #0287c2; letter-spacing: 1px; }
   </style>
 </head>
 <body>
-  <h2 id="header"></h2>
+  <h2 id="header">5GL Mindmap – Stand: 08.07.2024, 18:48 Uhr</h2>
   <div id="canvas"></div>
   <script>
-    // Zeigt die aktuelle Uhrzeit im Header
-    document.getElementById("header").textContent =
-      "5GL Mindmap – Box-Test | " + new Date().toLocaleString();
-
     // Ein einzelner Knoten
     let node = {
-      title: "Mein erster Knoten (zieh mich mit der Maus!)",
+      title: "Mein erster Knoten (zieh mich mit der Maus oder dem Finger!)",
       x: 200,
       y: 120
     };
 
-    // Zeichne die Box auf das Canvas
     function render() {
       const canvas = document.getElementById('canvas');
       canvas.innerHTML = '';
@@ -51,44 +47,51 @@
       div.style.top = node.y + "px";
       canvas.appendChild(div);
 
-      // Drag & Drop
+      // Drag & Drop Desktop
       let dragging = false, offsetX = 0, offsetY = 0;
       div.onmousedown = function(e) {
         dragging = true;
-        offsetX = e.offsetX;
-        offsetY = e.offsetY;
+        offsetX = e.clientX - node.x;
+        offsetY = e.clientY - node.y;
         div.style.boxShadow = "0 0 16px #00bcd47c";
+        document.onmousemove = function(e) {
+          if (dragging) {
+            node.x = e.clientX - offsetX;
+            node.y = e.clientY - offsetY;
+            render();
+          }
+        };
+        document.onmouseup = function() {
+          dragging = false;
+          div.style.boxShadow = "";
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
       };
-      document.onmousemove = function(e) {
-        if (dragging) {
-          node.x = e.clientX - offsetX;
-          node.y = e.clientY - offsetY - document.getElementById('header').offsetHeight;
-          render();
-        }
-      };
-      document.onmouseup = function() {
-        dragging = false;
-        div.style.boxShadow = "";
-      };
-      // Für Touch (iPad & Co.)
+
+      // Drag & Drop Touch (iPad & Co.)
       div.ontouchstart = function(e) {
-        dragging = true;
         let touch = e.touches[0];
+        dragging = true;
         offsetX = touch.clientX - node.x;
         offsetY = touch.clientY - node.y;
         div.style.boxShadow = "0 0 16px #00bcd47c";
-      };
-      document.ontouchmove = function(e) {
-        if (dragging) {
-          let touch = e.touches[0];
-          node.x = touch.clientX - offsetX;
-          node.y = touch.clientY - offsetY;
-          render();
-        }
-      };
-      document.ontouchend = function() {
-        dragging = false;
-        div.style.boxShadow = "";
+        e.preventDefault(); // <-- WICHTIG: Scrolling verhindern!
+        document.ontouchmove = function(e) {
+          if (dragging) {
+            let t = e.touches[0];
+            node.x = t.clientX - offsetX;
+            node.y = t.clientY - offsetY;
+            render();
+            e.preventDefault(); // <-- WICHTIG: Scrolling verhindern!
+          }
+        };
+        document.ontouchend = function() {
+          dragging = false;
+          div.style.boxShadow = "";
+          document.ontouchmove = null;
+          document.ontouchend = null;
+        };
       };
     }
 
