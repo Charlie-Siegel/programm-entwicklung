@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Ideenbank (Import mit Vorschau & Sortiericons)</title>
+  <title>Ideenbank (Import, Sortiericons, Einzel-Löschen)</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0; }
     #wrapper { max-width: 1100px; margin: 18px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 16px 22px 24px 22px; }
@@ -52,7 +52,7 @@
 </head>
 <body>
   <div id="wrapper">
-    <h2>Ideenbank <span class="small">(Import mit Vorschau & Sortiericons)</span></h2>
+    <h2>Ideenbank <span class="small">(Import, Sortiericons, Einzel-Löschen)</span></h2>
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:120px;">
       <select id="kategorie" style="width:112px;"></select>
@@ -216,16 +216,18 @@
           <td>${idee.titel}</td>
           <td>${idee.kategorie || ""}</td>
           <td>${idee.status || ""}</td>
-          <td class="${prioClass(idee.prio)}">${idee.prio||"mittel"}<span id="arrow-prio" class="sort-arrow"></span></td>
+          <td class="${prioClass(idee.prio)}">${idee.prio||"mittel"}</td>
           <td>${idee.datum || ""}</td>
           <td>${idee.beschreibung}</td>
           <td>
-            ${isImported ? "" : `<button class="btn edit-btn" title="Bearbeiten" onclick="openEditDialog(${ideen.indexOf(idee)})">✏️</button>
-            <button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button>`}
+            ${isImported
+              ? `<button class="btn" onclick="deleteImportIdee(${idx})">🗑️</button>`
+              : `<button class="btn edit-btn" title="Bearbeiten" onclick="openEditDialog(${ideen.indexOf(idee)})">✏️</button>
+                 <button class="btn" onclick="deleteIdee(${idee.id})">🗑️</button>`}
           </td>
         </tr>`;
       });
-      // Sortier-Pfeile immer sichtbar
+      // Sortier-Pfeile immer sichtbar (nur im Kopf!)
       let allCols = ["nr","titel","kategorie","status","prio","datum","beschreibung"];
       allCols.forEach(col=>{
         let el = document.getElementById("arrow-"+col);
@@ -247,11 +249,11 @@
           </ul>
           <button class="btn" onclick="acceptImport()">Übernehmen</button>
           <button class="btn" onclick="cancelImport()">Verwerfen</button>
+          <span class="small" style="float:right;">Einzelne Ideen kannst du unten direkt löschen.</span>
         </div>
       `;
     }
     function acceptImport() {
-      // Nur neue Ideen aus importBuffer in die Hauptliste übernehmen
       importBuffer.forEach(i => {
         let kopie = {...i}; delete kopie.importiert;
         ideen.push(kopie);
@@ -263,6 +265,17 @@
     }
     function cancelImport() {
       importBuffer = [];
+      renderTabelle();
+      renderImportPreview();
+    }
+    function deleteImportIdee(idx) {
+      // idx: Position in data = ideen.concat(importBuffer)
+      // Wir filtern NUR in importBuffer!
+      let data = ideen.concat(importBuffer);
+      let idee = data[idx];
+      if (!idee.importiert) return;
+      let impIdx = importBuffer.findIndex(i=>i===idee);
+      if(impIdx>=0) importBuffer.splice(impIdx,1);
       renderTabelle();
       renderImportPreview();
     }
