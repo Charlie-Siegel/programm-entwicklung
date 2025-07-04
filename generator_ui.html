@@ -31,9 +31,14 @@
       if (!file) return;
       let reader = new FileReader();
       reader.onload = function(evt) {
-        let data = JSON.parse(evt.target.result);
-        showJsonClass(data);
-        showGeneratedCode(data);
+        try {
+          let data = JSON.parse(evt.target.result);
+          showJsonClass(data);
+          showGeneratedCode(data);
+        } catch (err) {
+          document.getElementById("jsonView").innerHTML = `<div style="color:#b00;background:#fee;border-radius:6px;padding:14px;margin:13px 0 0 0;">⚠️ Fehler: Die Datei ist keine gültige JSON-Klassenbeschreibung.<br><b>Fehler:</b> ${err.message}</div>`;
+          if (document.getElementById("codeBlock")) document.getElementById("codeBlock").innerHTML = "";
+        }
       };
       reader.readAsText(file);
     };
@@ -66,7 +71,6 @@
       document.getElementById("jsonView").innerHTML = html;
     }
 
-    // Code-Generator: Erzeugt die komplette Klassenstruktur als Text
     function showGeneratedCode(data) {
       if (!data.class) { document.getElementById('codeBlock').innerHTML = ""; return; }
       let code = `class ${data.class} {\n  constructor({`;
