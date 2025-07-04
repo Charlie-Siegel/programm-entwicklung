@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>5GL Klassen-UI/Code Generator</title>
+  <style>
+    body { font-family: sans-serif; background: #f6faff; margin:0; }
+    #wrapper { max-width: 1100px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 20px 24px 24px 24px;}
+    h2 { color: #0287c2; }
+    .small { font-size:0.97em; color:#888; }
+    table { border-collapse: collapse; width:100%; margin-bottom:18px; }
+    th, td { border:1px solid #e0e5ee; padding:6px 9px; }
+    th { background:#e6f2ff; font-weight:500; }
+    .section { margin:26px 0 12px 0; font-size:1.13em; font-weight:600; color:#1667b6; }
+    .codebox { background:#f3f6fa; font-family:monospace; font-size:1.05em; border-radius:8px; padding:13px 13px 13px 13px; margin:11px 0; overflow-x:auto; border:1px solid #e3e8ef;}
+    #methodTestUI button { margin-right:8px; margin-bottom:8px; }
+    #codeActions { margin-bottom:9px;}
+    textarea#docMd { width:99%; height:120px; font-family:monospace; font-size:1em; border-radius:7px; border:1px solid #b4c7de; background:#f3f7fc;}
+    #fileInput { display:none; }
+    .status-getestet { color:#18a041; font-weight:bold;}
+    .status-geplant { color:#c98906; font-weight:bold;}
+    .status-fehlerhaft { color:#c52b2b; font-weight:bold;}
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <h2>5GL Klassen-Generator/Tester</h2>
+    <div style="margin-bottom:17px;">
+      <button onclick="document.getElementById('fileInput').click()" class="btn">Klassen-JSON laden</button>
+      <input type="file" id="fileInput" accept=".json">
+      <span id="klassename" style="font-weight:bold; color:#1667b6; font-size:1.08em; margin-left:24px;"></span>
+    </div>
+    <div id="overview"></div>
+    <div id="methodTestUI"></div>
+    <div class="section">Auto-generierter Code</div>
+    <div id="codeActions">
+      <button onclick="copyCode()">Code kopieren</button>
+    </div>
+    <div id="classCode" class="codebox"></div>
+    <div class="section">Auto-generierte Markdown-Doku</div>
+    <textarea id="docMd" readonly></textarea>
+  </div>
+  <script>
+    let classObj = null;
+    document.getElementById('fileInput').addEventListener('change', function(e){
+      let file = e.target.files[0];
+      if(!file) return;
+      let reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          classObj = JSON.parse(evt.target.result);
+          showClassInfo(classObj);
+        } catch (err) {
+          alert("Fehler beim Laden:\n"+err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function showClassInfo(cls) {
+      document.getElementById('klassename').textContent = cls.class ? "Klasse: " + cls.class : "";
+      let html = "";
+      // Properties
+      if (Array.isArray(cls.properties) && cls.properties.length) {
+        html += `<div class="section">Eigenschaften</div>`;
+        html += `<table><tr><th>Name</th><th>Typ</th><th>Beschreibung</th></tr>`;
+        cls.properties.forEach(p=>{
+          html += `<tr><td>${p.name}</td><td>${p.type}</td><td>${p.description||""}</td></tr>`;
+        });
+        html += `</table>`;
+      }
+      // Methods
+      if (Array.isArray(cls.methods) && cls.methods.length) {
+        html += `<div class="section">Methoden</div>`;
+        html += `<table><tr><th>Name</th><th>Parameter</th><th>Rückgabe</th><th>Status</th><th>Beschreibung</th></tr>`;
+        cls.methods.forEach(m=>{
+          html += `<tr>
+            <td>${m.name}</td>
+            <td>${Array.isArray(m.parameters)?m.parameters.join(", "):""}</td>
+            <td>${m.returns||""}</td>
+            <td><span class="status-${m.status||"geplant"}">${m.status||""}</span></td>
+            <td>${m.description||""}</td>
+          </tr>`;
+        });
+        html += `</table>`;
+      }
+      // Events
+      if (Array.isArray(cls.events) && cls.events.length) {
+        html += `<div class="section">Events</div>`;
+        html += `<table><tr><th>Name</th><th>Beschreibung</th></tr>`;
+        cls.events.forEach(e=>{
+          html += `<tr><td>${e.name}</td><td>${e.description||""}</td></tr>`;
+        });
+        html += `</table>`;
+      }
+      document.getElementById('overview').innerHTML = html;
+      showMethodTestUI(cls);
+      showClassCode(cls);
+      showMarkdown(cls);
+    }
+
+    // Mini-Test-UI: Zeige Methoden als Buttons, die per JS aufgerufen werden könnten
+    function showMethodTestUI(cls) {
+      let div = document.getElementById('methodTestUI');
+      div.innerHTML = "";
+      if (!(cls && Array.isArray(cls.methods) && cls.methods.length)) return;
+      div.innerHTML = `<div class="section">Test-UI: Methoden (Demo, nicht an Fenster gebunden)</div>`;
+      cls.methods.forEach(m => {
+        let params = Array.isArray(m.parameters) && m.parameters.length ? "("+m.parameters.map(p=>"?").join(", ")+")" : "()";
+        let disabled = m.status!=="getestet" ? "disabled title='Nicht getestet'" : "";
+        div.innerHTML += `<button ${disabled} onclick="alert('Demo: ${m.name}${params}')">${m.name}${params}</button>`;
+      });
+    }
+
+    // Code-Generator: Macht eine JS-Klasse aus der JSON
+    function showClassCode(cls) {
+      let code = "";
+      if (!cls || !cls.class) return;
+      code += `class ${cls.class} {\n`;
+      // Constructor
+      code += "  constructor(options) {\n";
+      if(Array.isArray(cls.properties)){
+        cls.properties.forEach(p=>{
+          code += `    this.${p.name} = options?.${p.name} !== undefined ? options.${p.name} : null;\n`;
+        });
+      }
+      code += "  }\n";
+      // Methods
+      if (Array.isArray(cls.methods)){
+        cls.methods.forEach(m=>{
+          let params = Array.isArray(m.parameters) ? m.parameters.join(", ") : "";
+          code += `  ${m.name}(${params}) {\n`;
+          code += m.code ? "    " + m.code.replace(/\n/g,"\n    ") + "\n" : "    // TODO\n";
+          code += "  }\n";
+        });
+      }
+      code += "}\n";
+      document.getElementById("classCode").textContent = code;
+    }
+    function copyCode() {
+      let code = document.getElementById("classCode").textContent;
+      navigator.clipboard.writeText(code);
+      alert("Code kopiert!");
+    }
+
+    // Markdown-Doku-Generator
+    function showMarkdown(cls) {
+      let md = `# Klasse: ${cls.class || ""}\n\n`;
+      if(cls.description) md += `${cls.description}\n\n`;
+      if (Array.isArray(cls.properties) && cls.properties.length) {
+        md += `## Eigenschaften\n\n| Name | Typ | Beschreibung |\n|---|---|---|\n`;
+        cls.properties.forEach(p=>{
+          md += `| ${p.name} | ${p.type} | ${p.description||""} |\n`;
+        });
+        md += "\n";
+      }
+      if (Array.isArray(cls.methods) && cls.methods.length) {
+        md += `## Methoden\n\n| Name | Parameter | Rückgabe | Status | Beschreibung |\n|---|---|---|---|---|\n`;
+        cls.methods.forEach(m=>{
+          md += `| ${m.name} | ${(m.parameters||[]).join(", ")} | ${m.returns||""} | ${m.status||""} | ${m.description||""} |\n`;
+        });
+        md += "\n";
+      }
+      if (Array.isArray(cls.events) && cls.events.length) {
+        md += `## Events\n\n| Name | Beschreibung |\n|---|---|\n`;
+        cls.events.forEach(e=>{
+          md += `| ${e.name} | ${e.description||""} |\n`;
+        });
+        md += "\n";
+      }
+      document.getElementById("docMd").value = md;
+    }
+  </script>
+</body>
+</html>
