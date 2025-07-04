@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <title>Ideenbank</title>
   <style>
-    body { font-family: sans-serif; background: #f6faff; margin: 0;}
-    #wrapper { max-width: 950px; margin: 34px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0002; padding: 30px; }
+    body { font-family: sans-serif; background: #f6faff; margin: 0; }
+    #wrapper { max-width: 1000px; margin: 36px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 32px; }
     h2 { color: #0287c2; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 24px;}
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
     th, td { border: 1px solid #e0e5ee; padding: 7px 10px; }
     th { background: #e6f2ff; }
     .btn { background: #e6f2ff; color: #0287c2; border: none; border-radius: 5px; padding: 5px 12px; cursor: pointer;}
@@ -16,23 +16,39 @@
     .small { font-size: 0.97em; color: #888;}
     #exportBtn, #importBtn { margin-right: 12px; }
     .add-btn { font-size: 1.1em; padding: 2px 7px; margin-left: 2px;}
-    .catstat-row { margin-bottom: 6px;}
-    .catstat-row .btn { font-size:1em; padding:2px 7px; margin-left:1px;}
-    .catstat-head { color:#026199; font-weight:bold; margin:10px 0 2px 0; display:inline-block;}
-    .catstat-list { margin:0 0 12px 0;}
+    .catstat-row { display:flex; align-items:center; gap:6px; margin-bottom: 8px;}
+    .catstat-row span { flex: 1 1 0;}
+    .catstat-head { color:#026199; font-weight:bold; margin:12px 0 4px 0; display:block;}
+    .dialog {
+      display:none; position:fixed; top:9vh; left:0; right:0; margin:auto; width:390px;
+      background:#fff; border-radius:11px; box-shadow:0 8px 36px #0005; z-index:99;
+      padding:0 0 20px 0; text-align:left;
+      animation: popupIn .2s;
+    }
+    .dialog-title {
+      font-weight:bold; color:#0287c2; padding:17px 24px 11px 24px;
+      font-size:1.15em; border-bottom:1px solid #eef1f4; display:flex; align-items:center; justify-content:space-between;
+    }
+    .dialog-content { padding:16px 24px 2px 24px; }
+    .dialog-actions { padding:12px 24px 2px 24px;}
+    .close-x { color:#888; background:none; border:none; font-size:1.3em; cursor:pointer; font-weight:bold;}
+    .close-x:hover { color:#c00;}
+    .import-vorschau-table td, .import-vorschau-table th { font-size:0.98em; }
+    #fixedclock { position:fixed; right:24px; bottom:12px; background:#e8eafc; color:#048; padding:4px 16px 4px 14px; border-radius:15px 17px; box-shadow:0 2px 8px #aaa2; font-size:1.04em; z-index:10; }
+    @keyframes popupIn { from {transform:scale(0.94); opacity:0.1;} to{transform:scale(1);opacity:1;}}
   </style>
 </head>
 <body>
   <div id="wrapper">
     <h2>Ideenbank</h2>
     <div id="formDiv">
-      <input id="titel" placeholder="Titel" style="width:130px;">
-      <select id="kategorie" style="width:120px;"></select>
+      <input id="titel" placeholder="Titel" style="width:140px;">
+      <select id="kategorie" style="width:130px;"></select>
       <button class="btn add-btn" onclick="showKategorieVerwaltung()" title="Kategorien verwalten">⚙️</button>
-      <select id="status" style="width:120px;"></select>
+      <select id="status" style="width:130px;"></select>
       <button class="btn add-btn" onclick="showStatusVerwaltung()" title="Status verwalten">⚙️</button>
       <input id="datum" type="date" style="width:120px;">
-      <input id="beschreibung" placeholder="Beschreibung" style="width:210px;">
+      <input id="beschreibung" placeholder="Beschreibung" style="width:230px;">
       <button class="btn" onclick="addIdee()">➕ Hinzufügen</button>
     </div>
     <div style="margin-bottom:12px;">
@@ -50,20 +66,51 @@
       <tbody></tbody>
     </table>
     <div class="small">Status/Kategorien können über ⚙️ verwaltet werden. Exportiert wird im 5GL-Format.<br>
-      Alles wird beim Verlassen des Fensters gespeichert. <b>Tipp:</b> Beim Import werden Kategorien und Status übernommen.
+      <b>Tipp:</b> Beim Import gibt es jetzt eine Vorschau!
     </div>
-    <div id="catstatDialog" style="display:none; position:fixed; top:10vh; left:0; right:0; margin:auto; width:360px; background:#fff; border-radius:9px; box-shadow:0 8px 36px #0005; z-index:9; padding:22px 28px 18px 28px; text-align:left;">
-      <h3 id="catstatTitle"></h3>
-      <div id="catstatList"></div>
-      <input id="catstatInput" style="width:65%;">
+  </div>
+  <div id="fixedclock"></div>
+  <!-- Kategorien/Status Dialog -->
+  <div class="dialog" id="catstatDialog">
+    <div class="dialog-title">
+      <span id="catstatTitle"></span>
+      <button class="close-x" onclick="closeCatstat()" title="Schließen">×</button>
+    </div>
+    <div class="dialog-content" id="catstatList"></div>
+    <div class="dialog-actions">
+      <input id="catstatInput" style="width:62%;">
       <button class="btn" onclick="catstatAdd()">+</button>
       <button class="btn" onclick="closeCatstat()">Schließen</button>
+    </div>
+  </div>
+  <!-- Import-Preview Dialog -->
+  <div class="dialog" id="importDialog">
+    <div class="dialog-title">
+      <span>Import-Vorschau</span>
+      <button class="close-x" onclick="closeImportDialog()" title="Abbrechen">×</button>
+    </div>
+    <div class="dialog-content">
+      <div id="importTableBox"></div>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn" onclick="importUebernehmen()">Alle übernehmen</button>
+      <button class="btn" onclick="closeImportDialog()">Abbrechen</button>
     </div>
   </div>
   <script>
     let ideen = [];
     let kategorien = ["Tool", "Export", "Organisation"];
     let stati = ["offen", "in Arbeit", "erledigt", "wichtig"];
+    let importVorschauIdeen = [];
+
+    // --- Uhrzeit/Datum anzeigen ---
+    function showFixedClock() {
+      let d = new Date();
+      let dt = d.toLocaleDateString('de-DE', {weekday:'short', year:'numeric', month:'2-digit', day:'2-digit'});
+      let t = d.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
+      document.getElementById("fixedclock").textContent = "Seite geladen: " + dt + ", " + t;
+    }
+    showFixedClock();
 
     function renderDropdowns() {
       // Kategorie
@@ -135,20 +182,9 @@
         try {
           let data = JSON.parse(evt.target.result);
           if (!data.ideen || !Array.isArray(data.ideen)) throw new Error("Formatfehler: Array 'ideen' fehlt!");
-          if (Array.isArray(data.kategorien)) {
-            data.kategorien.forEach(kat => { if (!kategorien.includes(kat)) kategorien.push(kat); });
-          }
-          if (Array.isArray(data.stati)) {
-            data.stati.forEach(stat => { if (!stati.includes(stat)) stati.push(stat); });
-          }
-          let nextId = ideen.length ? Math.max(...ideen.map(i=>i.id)) + 1 : 1;
-          data.ideen.forEach((idee, idx) => {
-            idee.id = nextId++;
-            ideen.push(idee);
-          });
-          renderDropdowns();
-          renderTabelle();
-          autosave();
+          // Kategories und Status sammeln (noch nicht übernehmen)
+          importVorschauIdeen = data.ideen.map(idee => Object.assign({}, idee));
+          showImportPreview();
         } catch (err) {
           alert("Fehler beim Importieren:\n" + err.message);
         }
@@ -156,7 +192,56 @@
       reader.readAsText(file);
     };
 
-    // --- Verwaltung Kategorien/Status ---
+    // --- Import-Vorschau ---
+    function showImportPreview() {
+      document.getElementById("importDialog").style.display = "block";
+      renderImportVorschauTable();
+    }
+    function renderImportVorschauTable() {
+      let box = document.getElementById("importTableBox");
+      if (!importVorschauIdeen.length) { box.innerHTML = "<i>Keine Ideen zu importieren.</i>"; return; }
+      let html = `<table class="import-vorschau-table"><thead>
+        <tr><th>Titel</th><th>Kategorie</th><th>Status</th><th>Datum</th><th>Beschreibung</th><th></th></tr></thead><tbody>`;
+      importVorschauIdeen.forEach((idee, idx) => {
+        html += `<tr>
+          <td>${idee.titel}</td>
+          <td>${idee.kategorie || ""}</td>
+          <td>${idee.status || ""}</td>
+          <td>${idee.datum || ""}</td>
+          <td>${idee.beschreibung}</td>
+          <td><button class="btn" onclick="importRemove(${idx})">🗑️</button></td>
+        </tr>`;
+      });
+      html += "</tbody></table>";
+      box.innerHTML = html;
+    }
+    function importRemove(idx) {
+      importVorschauIdeen.splice(idx, 1);
+      renderImportVorschauTable();
+    }
+    function closeImportDialog() {
+      document.getElementById("importDialog").style.display = "none";
+      importVorschauIdeen = [];
+    }
+    function importUebernehmen() {
+      // Ergänze neue Kategorien und Stati
+      importVorschauIdeen.forEach(idee => {
+        if (idee.kategorie && !kategorien.includes(idee.kategorie)) kategorien.push(idee.kategorie);
+        if (idee.status && !stati.includes(idee.status)) stati.push(idee.status);
+      });
+      // IDs sauber vergeben
+      let nextId = ideen.length ? Math.max(...ideen.map(i=>i.id)) + 1 : 1;
+      importVorschauIdeen.forEach((idee, idx) => {
+        idee.id = nextId++;
+        ideen.push(idee);
+      });
+      renderDropdowns();
+      renderTabelle();
+      autosave();
+      closeImportDialog();
+    }
+
+    // --- Verwaltung Kategorien/Status (Dialog-Design) ---
     let currentCatStat = null; // "kategorie" oder "status"
     function showKategorieVerwaltung() {
       currentCatStat = "kategorie";
@@ -240,6 +325,7 @@
       } catch (e) { /* ignorieren */ }
     }
     window.addEventListener("beforeunload", autosave);
+
     // --- Initialisierung ---
     autorestore();
     renderDropdowns();
