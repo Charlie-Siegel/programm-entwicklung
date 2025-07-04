@@ -5,7 +5,7 @@
   <title>Ideenbank</title>
   <style>
     body { font-family: sans-serif; background: #f6faff; margin: 0;}
-    #wrapper { max-width: 900px; margin: 34px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0002; padding: 30px; }
+    #wrapper { max-width: 950px; margin: 34px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #0002; padding: 30px; }
     h2 { color: #0287c2; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 24px;}
     th, td { border: 1px solid #e0e5ee; padding: 7px 10px; }
@@ -16,6 +16,10 @@
     .small { font-size: 0.97em; color: #888;}
     #exportBtn, #importBtn { margin-right: 12px; }
     .add-btn { font-size: 1.1em; padding: 2px 7px; margin-left: 2px;}
+    .catstat-row { margin-bottom: 6px;}
+    .catstat-row .btn { font-size:1em; padding:2px 7px; margin-left:1px;}
+    .catstat-head { color:#026199; font-weight:bold; margin:10px 0 2px 0; display:inline-block;}
+    .catstat-list { margin:0 0 12px 0;}
   </style>
 </head>
 <body>
@@ -24,9 +28,9 @@
     <div id="formDiv">
       <input id="titel" placeholder="Titel" style="width:130px;">
       <select id="kategorie" style="width:120px;"></select>
-      <button class="btn add-btn" onclick="addKategorie()" title="Kategorie hinzufügen">+</button>
+      <button class="btn add-btn" onclick="showKategorieVerwaltung()" title="Kategorien verwalten">⚙️</button>
       <select id="status" style="width:120px;"></select>
-      <button class="btn add-btn" onclick="addStatus()" title="Status hinzufügen">+</button>
+      <button class="btn add-btn" onclick="showStatusVerwaltung()" title="Status verwalten">⚙️</button>
       <input id="datum" type="date" style="width:120px;">
       <input id="beschreibung" placeholder="Beschreibung" style="width:210px;">
       <button class="btn" onclick="addIdee()">➕ Hinzufügen</button>
@@ -35,6 +39,7 @@
       <button class="btn" id="exportBtn" onclick="exportIdeen()">⤓ Exportieren</button>
       <button class="btn" id="importBtn" onclick="document.getElementById('importFile').click()">⤒ Importieren</button>
       <input type="file" id="importFile" accept=".json" style="display:none">
+      <span style="float:right" class="small" id="autosaveMsg"></span>
     </div>
     <table id="ideenTabelle">
       <thead>
@@ -44,9 +49,15 @@
       </thead>
       <tbody></tbody>
     </table>
-    <div class="small">Status/Kategorien können per „+“ ergänzt werden.<br>
-      Ideen können jetzt exportiert/importiert werden. Exportiert wird im 5GL-Format.<br>
-      <b>Tipp:</b> Beim Import werden die Kategorien und Status der importierten Ideen automatisch übernommen, falls sie noch nicht existieren.
+    <div class="small">Status/Kategorien können über ⚙️ verwaltet werden. Exportiert wird im 5GL-Format.<br>
+      Alles wird beim Verlassen des Fensters gespeichert. <b>Tipp:</b> Beim Import werden Kategorien und Status übernommen.
+    </div>
+    <div id="catstatDialog" style="display:none; position:fixed; top:10vh; left:0; right:0; margin:auto; width:360px; background:#fff; border-radius:9px; box-shadow:0 8px 36px #0005; z-index:9; padding:22px 28px 18px 28px; text-align:left;">
+      <h3 id="catstatTitle"></h3>
+      <div id="catstatList"></div>
+      <input id="catstatInput" style="width:65%;">
+      <button class="btn" onclick="catstatAdd()">+</button>
+      <button class="btn" onclick="closeCatstat()">Schließen</button>
     </div>
   </div>
   <script>
@@ -80,24 +91,6 @@
       }
     }
 
-    function addKategorie() {
-      let kat = prompt("Neue Kategorie anlegen:");
-      if (!kat) return;
-      if (kategorien.includes(kat)) { alert("Kategorie existiert schon."); return; }
-      kategorien.push(kat);
-      renderDropdowns();
-      document.getElementById("kategorie").value = kat;
-    }
-
-    function addStatus() {
-      let stat = prompt("Neuen Status anlegen:");
-      if (!stat) return;
-      if (stati.includes(stat)) { alert("Status existiert schon."); return; }
-      stati.push(stat);
-      renderDropdowns();
-      document.getElementById("status").value = stat;
-    }
-
     function addIdee() {
       let titel = document.getElementById("titel").value.trim();
       let kategorie = document.getElementById("kategorie").value;
@@ -110,12 +103,14 @@
       renderTabelle();
       document.getElementById("titel").value = "";
       document.getElementById("beschreibung").value = "";
+      autosave();
     }
 
     function deleteIdee(id) {
       if (!confirm("Idee wirklich löschen?")) return;
       ideen = ideen.filter(i => i.id !== id);
       renderTabelle();
+      autosave();
     }
 
     function exportIdeen() {
@@ -140,14 +135,12 @@
         try {
           let data = JSON.parse(evt.target.result);
           if (!data.ideen || !Array.isArray(data.ideen)) throw new Error("Formatfehler: Array 'ideen' fehlt!");
-          // Neue Kategorien und Stati aus Import ergänzen:
           if (Array.isArray(data.kategorien)) {
             data.kategorien.forEach(kat => { if (!kategorien.includes(kat)) kategorien.push(kat); });
           }
           if (Array.isArray(data.stati)) {
             data.stati.forEach(stat => { if (!stati.includes(stat)) stati.push(stat); });
           }
-          // Importierte Ideen (IDs neu vergeben, falls nötig)
           let nextId = ideen.length ? Math.max(...ideen.map(i=>i.id)) + 1 : 1;
           data.ideen.forEach((idee, idx) => {
             idee.id = nextId++;
@@ -155,6 +148,7 @@
           });
           renderDropdowns();
           renderTabelle();
+          autosave();
         } catch (err) {
           alert("Fehler beim Importieren:\n" + err.message);
         }
@@ -162,13 +156,92 @@
       reader.readAsText(file);
     };
 
-    // Starteinträge (Demo, kann gelöscht werden)
-    ideen = [
-      {id:1, titel:"Methodenbank-Editor", kategorie:"Tool", datum:"2024-07-09", status:"offen", beschreibung:"Im Browser Methoden direkt anlegen, bearbeiten und löschen."},
-      {id:2, titel:"Code-/Doku-Export", kategorie:"Export", datum:"2024-07-09", status:"offen", beschreibung:"Automatischer Export der Methodenbank als Markdown oder HTML."},
-      {id:3, titel:"Vergleich von Methodenbanken", kategorie:"Tool", datum:"2024-07-09", status:"offen", beschreibung:"Zwei JSON-Methodenbanken auf Unterschiede prüfen und visualisieren."},
-      {id:4, titel:"Ideenlogbuch integrieren", kategorie:"Organisation", datum:"2024-07-09", status:"offen", beschreibung:"Alle Systemideen und -vorschläge werden gespeichert und können bearbeitet werden."}
-    ];
+    // --- Verwaltung Kategorien/Status ---
+    let currentCatStat = null; // "kategorie" oder "status"
+    function showKategorieVerwaltung() {
+      currentCatStat = "kategorie";
+      showCatstatDialog("Kategorien", kategorien);
+    }
+    function showStatusVerwaltung() {
+      currentCatStat = "status";
+      showCatstatDialog("Status", stati);
+    }
+    function showCatstatDialog(title, arr) {
+      document.getElementById("catstatTitle").textContent = title + " verwalten";
+      let list = document.getElementById("catstatList");
+      list.innerHTML = "";
+      arr.forEach((val, idx) => {
+        list.innerHTML += `
+          <div class="catstat-row">
+            <span>${val}</span>
+            <button class="btn" onclick="editCatstat(${idx})" title="Umbenennen">✏️</button>
+            <button class="btn" onclick="deleteCatstat(${idx})" title="Löschen">🗑️</button>
+          </div>`;
+      });
+      document.getElementById("catstatInput").value = "";
+      document.getElementById("catstatDialog").style.display = "block";
+    }
+    function catstatAdd() {
+      let val = document.getElementById("catstatInput").value.trim();
+      if (!val) return;
+      let arr = currentCatStat === "kategorie" ? kategorien : stati;
+      if (arr.includes(val)) { alert("Wert existiert schon."); return; }
+      arr.push(val);
+      renderDropdowns();
+      showCatstatDialog(currentCatStat==="kategorie"?"Kategorien":"Status", arr);
+      autosave();
+    }
+    function deleteCatstat(idx) {
+      let arr = currentCatStat === "kategorie" ? kategorien : stati;
+      if (!confirm("Wirklich löschen?")) return;
+      let delVal = arr[idx];
+      arr.splice(idx,1);
+      // Alle Ideen mit dieser Kategorie/Status ggf. updaten:
+      if (currentCatStat === "kategorie") ideen.forEach(i=>{if(i.kategorie===delVal) i.kategorie="";});
+      if (currentCatStat === "status") ideen.forEach(i=>{if(i.status===delVal) i.status="";});
+      renderDropdowns();
+      renderTabelle();
+      showCatstatDialog(currentCatStat==="kategorie"?"Kategorien":"Status", arr);
+      autosave();
+    }
+    function editCatstat(idx) {
+      let arr = currentCatStat === "kategorie" ? kategorien : stati;
+      let oldVal = arr[idx];
+      let neu = prompt("Neuer Wert für "+oldVal+":", oldVal);
+      if (!neu || neu===oldVal) return;
+      if (arr.includes(neu)) { alert("Wert existiert schon."); return; }
+      arr[idx]=neu;
+      // Alle Ideen entsprechend umbenennen:
+      if (currentCatStat==="kategorie") ideen.forEach(i=>{if(i.kategorie===oldVal) i.kategorie=neu;});
+      if (currentCatStat==="status") ideen.forEach(i=>{if(i.status===oldVal) i.status=neu;});
+      renderDropdowns();
+      renderTabelle();
+      showCatstatDialog(currentCatStat==="kategorie"?"Kategorien":"Status", arr);
+      autosave();
+    }
+    function closeCatstat() {
+      document.getElementById("catstatDialog").style.display = "none";
+    }
+
+    // --- Autosave ---
+    function autosave() {
+      let obj = {ideen, kategorien, stati};
+      localStorage.setItem("ideenbank5GL", JSON.stringify(obj));
+      document.getElementById("autosaveMsg").textContent = "Gespeichert " + (new Date()).toLocaleTimeString();
+    }
+    function autorestore() {
+      let d = localStorage.getItem("ideenbank5GL");
+      if (!d) return;
+      try {
+        let obj = JSON.parse(d);
+        if (Array.isArray(obj.ideen)) ideen = obj.ideen;
+        if (Array.isArray(obj.kategorien)) kategorien = obj.kategorien;
+        if (Array.isArray(obj.stati)) stati = obj.stati;
+      } catch (e) { /* ignorieren */ }
+    }
+    window.addEventListener("beforeunload", autosave);
+    // --- Initialisierung ---
+    autorestore();
     renderDropdowns();
     renderTabelle();
   </script>
