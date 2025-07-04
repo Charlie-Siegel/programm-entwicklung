@@ -1,3 +1,12 @@
+WICHTIG: Kopiere ALLES von hier bis ganz unten einschließlich der drei Backticks am Ende!
+
+markdown
+Kopieren
+Bearbeiten
+# Projektbeschreibung: 5GL-Baustein-Sammlung
+
+---
+
 ## 📘 1. Projektübersicht
 
 Dieses Projekt dient der Entwicklung einer webbasierten Plattform, in der modulare Programmierbausteine (Attribute, Methoden, Events) definiert, kombiniert und dokumentiert werden können. Ziel ist es, eine Art 5GL-Programmierumgebung (Fünfte Generation), die ohne klassische Programmierung auskommt, sondern durch Konfiguration und Auswahl aus getesteten Modulen funktioniert.
@@ -118,3 +127,6 @@ graph TD
 ✨ 11. Lizenz und Nutzung
 Dieses Projekt dient ausschließlich zu Lern- und Testzwecken. Eine kommerzielle Nutzung erfordert Rücksprache.
 
+yaml
+Kopieren
+Bearbeiten
