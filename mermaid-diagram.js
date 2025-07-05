@@ -25,7 +25,7 @@ class MermaidDiagram extends HTMLElement {
     const diagramText = this.getAttribute('diagram') || '';
     if (!diagramText.trim()) { this.container.innerHTML = ''; return; }
     if (!window.mermaid) {
-      // Mermaid laden, falls noch nicht da:
+      // Mermaid laden, falls noch nicht vorhanden
       const script = document.createElement('script');
       script.src = "https://cdn.jsdelivr.net/npm/mermaid@8.13.10/dist/mermaid.min.js";
       script.onload = () => this.drawDiagram(diagramText);
