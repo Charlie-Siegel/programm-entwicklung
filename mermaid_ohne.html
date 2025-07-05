@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Mermaid Diagramm Demo</title>
+  <style>
+    body { background:#f6faff; font-family:sans-serif; margin:0; }
+    #container { max-width:860px; margin:32px auto; }
+    h2 { color:#0287c2;}
+  </style>
+  <script src="mermaid-diagram.js"></script>
+</head>
+<body>
+  <div id="container">
+    <h2>Mermaid Diagramm-Anzeige <span style="font-size:0.93em;color:#888;">(als Modul)</span></h2>
+    <!-- Das Diagramm-Modul aufrufen: -->
+    <mermaid-diagram id="diagram" diagram=""></mermaid-diagram>
+  </div>
+  <script>
+    // Beispiel-Text (Mermaid-Quellcode, wie in deinem bisherigen Editor)
+    const mermaidText = `
+flowchart TD
+    Hauptmenü([main.html<br/>Hauptmenü])
+    Ideenbank([ideenbank.html<br/>Ideenbank])
+    MermaidEditor([mermaid_editor.html<br/>Mermaid Editor])
+    JSONKlass([json_klassen.html<br/>JSON-Klassen])
+    CodeGen([generator_ui.html<br/>Code-Generator])
+    Testumgebung([test.html<br/>Testumgebung])
+    Dokumentation["Dokumentation"]
+
+    Hauptmenü -- lädt --> Ideenbank
+    Hauptmenü -- lädt --> MermaidEditor
+    Hauptmenü -- lädt --> JSONKlass
+    Hauptmenü -- lädt --> CodeGen
+    Hauptmenü -- lädt --> Testumgebung
+
+    Ideenbank -- Export/Import --> JSONKlass
+    JSONKlass -- generiert --> CodeGen
+    Ideenbank -- "Ideen für\\nModule" --> MermaidEditor
+    CodeGen -- Testcode --> Testumgebung
+
+    MermaidEditor -- SVG/PNG Export --> Dokumentation
+
+    subgraph 5GL-Module
+      Ideenbank
+      MermaidEditor
+      JSONKlass
+      CodeGen
+      Testumgebung
+    end
+`;
+
+    // Das Diagramm im Modul anzeigen:
+    document.getElementById('diagram').setAttribute('diagram', mermaidText.trim());
+  </script>
+</body>
+</html>
