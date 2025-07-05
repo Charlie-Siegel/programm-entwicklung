@@ -2,24 +2,27 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Mermaid Classic Editor (Modul-Version)</title>
+  <title>Mermaid Classic Editor (Modul-Version mit Export & Datei)</title>
   <script src="mermaid-diagram.js"></script>
   <style>
     body { background:#f6faff; font-family:sans-serif; margin:0;}
     #container { max-width:860px; margin:24px auto; background:#fff; border-radius:10px; box-shadow:0 2px 16px #0002; padding:22px 26px 22px 26px; }
     h2 { color:#0287c2;}
     #input { width:100%; height:135px; border-radius:8px; border:1px solid #c3d0e7; padding:8px 10px; font-family:monospace; font-size:1em;}
-    #btnBar { margin:12px 0 13px 0; display:flex; gap:11px; align-items:center; }
+    #btnBar { margin:12px 0 13px 0; display:flex; gap:11px; align-items:center; flex-wrap:wrap;}
     .btn { background:#e6f2ff; color:#0287c2; border:none; border-radius:6px; padding:7px 18px; cursor:pointer; font-size:1.08em; }
     .btn:hover { background:#d6ebfc; }
     #preview { background:#f8fafc; border-radius:8px; padding:17px 4px 15px 4px; min-height:120px; border:1px solid #e0e8f6; margin-bottom:13px;}
     #errMsg { color:#b80000; font-size:1em; font-weight:bold; margin:7px 0 8px 0;}
     #lastDiagram { font-size:0.98em; color:#888;}
+    input[type="file"] { display:none;}
+    label[for="fileInput"] { font-size:1.08em; background:#e6f2ff; color:#0287c2; border-radius:6px; padding:7px 18px; cursor:pointer; border:1px solid #e6f2ff; }
+    label[for="fileInput"]:hover { background:#d6ebfc; }
   </style>
 </head>
 <body>
   <div id="container">
-    <h2>Mermaid Classic Editor <span style="font-size:0.93em;color:#888;">(Modul-Version)</span></h2>
+    <h2>Mermaid Classic Editor <span style="font-size:0.93em;color:#888;">(mit PNG/JPEG-Export & Datei-Funktionen)</span></h2>
     <label for="input" style="font-weight:500;color:#157;">Diagramm-Quelltext (Mermaid):</label>
     <textarea id="input">flowchart TD
     Hauptmenü([main.html<br/>Hauptmenü])
@@ -55,6 +58,11 @@
       <button class="btn" onclick="copyCode()">Diagramm-Text kopieren</button>
       <button class="btn" onclick="copySVG()">Diagramm als SVG kopieren</button>
       <button class="btn" onclick="downloadSVG()">SVG herunterladen</button>
+      <button class="btn" onclick="downloadPNG()">PNG herunterladen</button>
+      <button class="btn" onclick="downloadJPEG()">JPEG herunterladen</button>
+      <button class="btn" onclick="saveDiagramText()">Diagramm-Text speichern</button>
+      <label for="fileInput">Diagramm-Text laden</label>
+      <input type="file" id="fileInput" accept=".mmd,.txt,.md,.mermaid"/>
       <span id="lastDiagram"></span>
     </div>
     <div id="errMsg"></div>
@@ -66,9 +74,9 @@
   <script>
     let input = document.getElementById('input');
     let errMsg = document.getElementById('errMsg');
-    let lastDiagram = "";
-    let lastDiagramSVG = ""; // Merken für SVG-Export
+    let lastDiagramSVG = "";
     let diagramElem = document.getElementById('diagram');
+    let fileInput = document.getElementById('fileInput');
 
     function renderMermaid() {
       let txt = input.value.trim();
@@ -81,7 +89,6 @@
       }
       diagramElem.setAttribute('diagram', txt);
 
-      // Warten, bis Diagramm geladen ist, dann SVG speichern (aus Shadow DOM!)
       setTimeout(() => {
         let shadow = diagramElem.shadowRoot;
         if (shadow) {
@@ -116,6 +123,75 @@
       a.download = 'diagramm.svg';
       a.click();
     };
+
+    // --- PNG/JPEG EXPORT ---
+    function svgToImageData(svgText, mimeType = "image/png", quality = 0.92, callback) {
+      let img = new Image();
+      // SVG needs to be base64 for some browsers
+      let svg64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
+      img.onload = function() {
+        let canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        let ctx = canvas.getContext('2d');
+        // Weißer Hintergrund für JPEG!
+        if (mimeType === "image/jpeg") {
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+        }
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(function(blob) {
+          callback(blob);
+        }, mimeType, quality);
+      };
+      img.onerror = function() {
+        errMsg.textContent = "Fehler beim SVG-Konvertieren.";
+      };
+      img.src = svg64;
+    }
+
+    window.downloadPNG = function() {
+      if (!lastDiagramSVG) return;
+      svgToImageData(lastDiagramSVG, "image/png", 1.0, function(blob) {
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'diagramm.png';
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      });
+    };
+
+    window.downloadJPEG = function() {
+      if (!lastDiagramSVG) return;
+      svgToImageData(lastDiagramSVG, "image/jpeg", 0.95, function(blob) {
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'diagramm.jpg';
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      });
+    };
+
+    // --- Speichern/Laden des Diagramm-Texts ---
+    window.saveDiagramText = function() {
+      let blob = new Blob([input.value], {type:"text/plain"});
+      let a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "diagramm.mmd";
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    };
+
+    fileInput.addEventListener('change', function() {
+      let file = fileInput.files[0];
+      if (!file) return;
+      let reader = new FileReader();
+      reader.onload = function(e) {
+        input.value = e.target.result;
+        renderMermaid();
+      };
+      reader.readAsText(file);
+    });
   </script>
 </body>
 </html>
