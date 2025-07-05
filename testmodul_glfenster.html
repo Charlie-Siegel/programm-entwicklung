@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>5GL Klassen-Testmodul – GLFenster</title>
+<style>
+  body { font-family:sans-serif; background:#f6faff; margin:0; padding:0; }
+  #wrapper { max-width:100vw; padding:20px; margin:auto; background:#fff; border-radius:10px; box-shadow:0 2px 14px #0002; }
+  h2 { color:#0287c2; }
+  .section { margin:24px 0 10px; font-size:1.13em; font-weight:600; color:#1667b6; }
+  .flex { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  table { border-collapse:collapse; width:100%; margin-bottom:18px; }
+  th, td { border:1px solid #e0e5ee; padding:6px 9px; }
+  th { background:#e6f2ff; font-weight:500; }
+  pre { background:#f3f6fa; padding:12px; border:1px solid #e3e8ef; border-radius:8px; }
+  #log { background:#f9f9f9; border:1px solid #ccc; padding:8px; height:150px; overflow:auto; }
+  .glfenster { position:absolute; top:150px; left:150px; width:300px; min-height:100px; background:#fff; border:2px solid #b5d2f6; border-radius:8px; box-shadow:0 4px 12px #0002; padding:10px; z-index:50; }
+  .glfenster .title { font-weight:bold; margin-bottom:6px; }
+  .btn { cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <h2>5GL Klassen-Testmodul – GLFenster</h2>
+  <div class="section">Eigenschaften</div>
+  <div id="properties"></div>
+
+  <div class="section">Methoden-Testcenter</div>
+  <div id="methods"></div>
+
+  <div class="section">Testfenster</div>
+  <div id="testContainer"></div>
+
+  <div class="section">Protokoll</div>
+  <div id="log"></div>
+</div>
+
+<script>
+// Beispiel-JSON
+const json = {
+  "class": "GLFenster",
+  "description": "Ein verschiebbares und skalierbares Fenster",
+  "properties": [
+    { "name": "title", "type": "string", "description": "Fenstertitel" },
+    { "name": "x", "type": "number", "description": "X-Position" },
+    { "name": "y", "type": "number", "description": "Y-Position" }
+  ],
+  "methods": [
+    { "name":"maximize", "parameters":[], "description":"Maximiert das Fenster" },
+    { "name":"minimize", "parameters":[], "description":"Minimiert das Fenster" },
+    { "name":"restore", "parameters":[], "description":"Stellt ursprüngliche Größe wieder her" },
+    { "name":"setTitle", "parameters":["title"], "description":"Setzt den Fenstertitel" },
+    { "name":"moveTo", "parameters":["x","y"], "description":"Bewegt das Fenster" },
+    { "name":"print", "parameters":[], "description":"Druckt den Inhalt" },
+    { "name":"focus", "parameters":[], "description":"Setzt Fokus auf das Fenster" }
+  ]
+};
+
+// Log-Funktion
+function log(msg) {
+  const l = document.getElementById('log');
+  l.innerHTML += `<div>${new Date().toLocaleTimeString()} – ${msg}</div>`;
+  l.scrollTop = l.scrollHeight;
+}
+
+// Klasse dynamisch erzeugen
+class GLFenster {
+  constructor(options) {
+    this.title = options?.title || "Neues Fenster";
+    this.x = options?.x || 150;
+    this.y = options?.y || 150;
+    this.createWindow();
+  }
+  createWindow() {
+    this.el = document.createElement("div");
+    this.el.className = "glfenster";
+    this.el.style.left = this.x+"px";
+    this.el.style.top = this.y+"px";
+    this.el.innerHTML = `<div class="title">${this.title}</div><div>Inhalt...</div>`;
+    document.getElementById("testContainer").appendChild(this.el);
+  }
+  maximize() {
+    this.el.style.width = "90vw";
+    this.el.style.height = "80vh";
+    log("Fenster maximiert.");
+  }
+  minimize() {
+    this.el.style.width = "200px";
+    this.el.style.height = "50px";
+    log("Fenster minimiert.");
+  }
+  restore() {
+    this.el.style.width = "300px";
+    this.el.style.height = "200px";
+    log("Fenster wiederhergestellt.");
+  }
+  setTitle(title) {
+    this.title = title;
+    this.el.querySelector(".title").textContent = title;
+    log(`Titel gesetzt auf: ${title}`);
+  }
+  moveTo(x,y) {
+    this.x = x;
+    this.y = y;
+    this.el.style.left = x+"px";
+    this.el.style.top = y+"px";
+    log(`Fenster verschoben nach (${x},${y})`);
+  }
+  // print() nicht implementiert
+  // focus() nicht implementiert
+}
+
+// Instanz erzeugen
+const instance = new GLFenster({title:"Testfenster"});
+
+// Eigenschaften-Editor
+const propDiv = document.getElementById("properties");
+json.properties.forEach(p=>{
+  const row = document.createElement("div");
+  row.innerHTML = `
+    <label>${p.name}: </label>
+    <input type="${p.type==='number'?'number':'text'}" value="${instance[p.name]}" data-prop="${p.name}">
+  `;
+  propDiv.appendChild(row);
+});
+propDiv.addEventListener("input", e=>{
+  if(e.target.dataset.prop){
+    const name = e.target.dataset.prop;
+    let val = e.target.value;
+    if(json.properties.find(p=>p.name===name).type==="number") val = Number(val);
+    instance[name]=val;
+    if(name==="x"||name==="y") instance.moveTo(instance.x, instance.y);
+    if(name==="title") instance.setTitle(val);
+    log(`Eigenschaft "${name}" geändert zu "${val}"`);
+  }
+});
+
+// Methoden-Buttons
+const methDiv = document.getElementById("methods");
+json.methods.forEach(m=>{
+  const btn = document.createElement("button");
+  btn.className="btn";
+  btn.textContent=m.name+"()";
+  btn.onclick=()=>{
+    if(typeof instance[m.name]==="function"){
+      if(m.parameters.length){
+        // Parameter abfragen
+        const inputs = m.parameters.map(p=>prompt(`Wert für ${p}:`));
+        instance[m.name](...inputs);
+      } else {
+        instance[m.name]();
+      }
+    } else {
+      alert(`Die Methode "${m.name}" ist nicht implementiert.`);
+      log(`Methode "${m.name}" nicht implementiert.`);
+    }
+  };
+  methDiv.appendChild(btn);
+});
+</script>
+</body>
+</html>
