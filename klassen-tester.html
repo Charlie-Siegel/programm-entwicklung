@@ -2,13 +2,14 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>5GL Klassen-Testsystem mit ISO-Prüfung</title>
+<title>5GL Klassen-Testsystem (Final)</title>
 <style>
   body { font-family:sans-serif; margin:0; background:#f6faff; }
   .window { position:absolute; border:1px solid #ccc; background:#fff; border-radius:8px; box-shadow:0 2px 12px #0003; resize:both; overflow:auto; }
   .header { background:#e6f2ff; padding:8px; cursor:move; font-weight:bold; user-select:none; }
   .content { padding:12px; }
   h2 { margin:0; color:#0287c2; }
+  h3 { margin:12px 0 6px; color:#1667b6; }
   table { border-collapse:collapse; width:100%; margin-top:10px; }
   th, td { border:1px solid #ddd; padding:6px; }
   th { background:#e6f2ff; }
@@ -21,14 +22,14 @@
 </head>
 <body>
 
-<!-- Linkes Fenster: JSON + Tabellen -->
+<!-- Linkes Fenster -->
 <div id="mainWin" class="window" style="top:20px; left:20px; width:50%; min-width:300px;">
   <div class="header" onmousedown="startDrag(event, this.parentNode)">Klassen-Tester</div>
   <div class="content">
     <input type="file" id="fileInput" accept=".json"><br><br>
     <div id="validation"></div>
-    <div id="classInfo"></div>
-
+    <div style="height:20px;"></div>
+    <h3 id="classInfo"></h3>
     <div id="tables" style="display:none;">
       <h3>Eigenschaften</h3>
       <table id="properties"><tr><th>Name</th><th>Typ</th><th>Beschreibung</th><th>Testwert</th><th>Status</th></tr></table>
@@ -45,7 +46,7 @@
   </div>
 </div>
 
-<!-- Rechtes Fenster: Live-Testfenster -->
+<!-- Rechtes Fenster -->
 <div id="testWin" class="window" style="top:20px; right:20px; width:45%; min-width:300px;">
   <div class="header" onmousedown="startDrag(event, this.parentNode)">Live-Testfenster</div>
   <div class="content" id="testContent">Bitte Klasse laden...</div>
@@ -53,7 +54,6 @@
 
 <script>
 let instance = null;
-
 document.getElementById("fileInput").addEventListener("change", function(e){
   let file = e.target.files[0];
   if(!file) return;
@@ -61,7 +61,7 @@ document.getElementById("fileInput").addEventListener("change", function(e){
   reader.onload = function(evt){
     try {
       const json = JSON.parse(evt.target.result);
-      // ISO-Prüfung
+      // Prüfung
       let errors=[];
       if(!json.class) errors.push("Feld <b>class</b> fehlt.");
       if(!Array.isArray(json.properties)) errors.push("Feld <b>properties</b> fehlt oder ist kein Array.");
@@ -87,19 +87,25 @@ document.getElementById("fileInput").addEventListener("change", function(e){
         valDiv.innerHTML=`<div style="color:#b00;">⚠️ Fehler:<ul><li>${errors.join("</li><li>")}</li></ul></div>`;
         return;
       }else{
-        valDiv.innerHTML=`<div style="color:#187d4c;">✅ ISO-Prüfung bestanden.</div>`;
+        valDiv.innerHTML=`<div style="color:#187d4c;">✅ JSON-Prüfung bestanden.</div>`;
       }
 
       // Klasseninfo
-      document.getElementById("classInfo").innerHTML=`<b>Klasse:</b> ${json.class}<br>${json.description||""}`;
+      document.getElementById("classInfo").innerHTML=`Klasse: ${json.class}`;
 
-      // Instanz erzeugen
-      instance=new Function(`return class ${json.class}{
+      // Klasse definieren
+      const DynamicClass = new Function(`return class ${json.class}{
         constructor(){
+          this.title="Neues Fenster";
           this.el=document.createElement("div");
-          this.el.innerHTML="<b>${json.class}</b><br>Instanz erstellt.";
-          document.getElementById('testContent').innerHTML="";
-          document.getElementById('testContent').appendChild(this.el);
+          this.el.style.border="2px solid #0287c2";
+          this.el.style.padding="8px";
+          this.el.style.background="#f9f9f9";
+          this.el.style.borderRadius="6px";
+          this.el.innerHTML="<b>"+this.title+"</b><br><small>Instanz erzeugt.</small>";
+          const container=document.getElementById('testContent');
+          container.innerHTML="";
+          container.appendChild(this.el);
         }
         ${json.methods.map(m=>`
         ${m.name}(${m.parameters.join(", ")}){
@@ -107,12 +113,12 @@ document.getElementById("fileInput").addEventListener("change", function(e){
           log("Methode '${m.name}' ausgeführt.");
         }`).join("")}
       }`)();
-      const inst=new instance();
+      instance = new DynamicClass();
 
-      // Tabellen füllen
+      // Tabellen
       document.getElementById("tables").style.display="block";
-      fillProps(json, inst);
-      fillMethods(json, inst);
+      fillProps(json, instance);
+      fillMethods(json, instance);
       fillEvents(json);
 
     }catch(err){
@@ -127,22 +133,28 @@ function fillProps(json, inst){
   t.innerHTML='<tr><th>Name</th><th>Typ</th><th>Beschreibung</th><th>Testwert</th><th>Status</th></tr>';
   json.properties.forEach(p=>{
     const tr=document.createElement("tr");
+    const sel=document.createElement("select");
+    ["Geplant","Getestet","Fehlerhaft"].forEach(s=>{
+      const o=document.createElement("option");
+      o.textContent=s;
+      tr.appendChild(o);
+    });
     tr.innerHTML=`
       <td>${p.name}</td><td>${p.type}</td><td>${p.description}</td>
       <td><input data-prop="${p.name}" value=""></td>
-      <td class="status status-geplant">Geplant</td>`;
+      <td><select><option>Geplant</option><option>Getestet</option><option>Fehlerhaft</option></select></td>`;
     t.appendChild(tr);
   });
   t.addEventListener("input",e=>{
     if(e.target.dataset.prop){
       const name=e.target.dataset.prop;
       inst[name]=e.target.value;
-      log(`Property '${name}' gesetzt auf '${e.target.value}'`);
-      e.target.closest("tr").querySelector(".status").textContent="Getestet";
-      e.target.closest("tr").querySelector(".status").className="status status-getestet";
+      if(name==="title") inst.el.querySelector("b").textContent=e.target.value;
+      log(`Property '${name}' geändert: ${e.target.value}`);
     }
   });
 }
+
 function fillMethods(json, inst){
   const t=document.getElementById("methods");
   t.innerHTML='<tr><th>Name</th><th>Parameter</th><th>Beschreibung</th><th>Test</th><th>Status</th></tr>';
@@ -150,27 +162,31 @@ function fillMethods(json, inst){
     const tr=document.createElement("tr");
     const btn=document.createElement("button");
     btn.textContent="Test";
+    const sel=document.createElement("select");
+    ["Geplant","Getestet","Fehlerhaft"].forEach(s=>{
+      const o=document.createElement("option");
+      o.textContent=s;
+      sel.appendChild(o);
+    });
     btn.onclick=()=>{
       try{
         const args=m.parameters.map(p=>prompt(`Wert für ${p}:`));
         inst[m.name](...args);
         log(`Methode '${m.name}' getestet`);
-        tr.querySelector(".status").textContent="Getestet";
-        tr.querySelector(".status").className="status status-getestet";
       }catch{
         alert(`Methode '${m.name}' nicht implementiert`);
-        tr.querySelector(".status").textContent="Fehlerhaft";
-        tr.querySelector(".status").className="status status-fehlerhaft";
+        sel.value="Fehlerhaft";
       }
     };
     tr.innerHTML=`
       <td>${m.name}</td><td>${m.parameters.join(", ")}</td><td>${m.description}</td>
-      <td></td>
-      <td class="status status-geplant">Geplant</td>`;
+      <td></td><td></td>`;
     tr.querySelector("td:nth-child(4)").appendChild(btn);
+    tr.querySelector("td:nth-child(5)").appendChild(sel);
     t.appendChild(tr);
   });
 }
+
 function fillEvents(json){
   const t=document.getElementById("events");
   t.innerHTML='<tr><th>Name</th><th>Beschreibung</th><th>Test</th><th>Status</th></tr>';
@@ -178,23 +194,29 @@ function fillEvents(json){
     const tr=document.createElement("tr");
     const btn=document.createElement("button");
     btn.textContent="Trigger";
+    const sel=document.createElement("select");
+    ["Geplant","Getestet","Fehlerhaft"].forEach(s=>{
+      const o=document.createElement("option");
+      o.textContent=s;
+      sel.appendChild(o);
+    });
     btn.onclick=()=>{
       log(`Event '${e.name}' getriggert`);
-      tr.querySelector(".status").textContent="Getestet";
-      tr.querySelector(".status").className="status status-getestet";
     };
     tr.innerHTML=`
-      <td>${e.name}</td><td>${e.description||""}</td><td></td>
-      <td class="status status-geplant">Geplant</td>`;
+      <td>${e.name}</td><td>${e.description||""}</td><td></td><td></td>`;
     tr.querySelector("td:nth-child(3)").appendChild(btn);
+    tr.querySelector("td:nth-child(4)").appendChild(sel);
     t.appendChild(tr);
   });
 }
+
 function log(msg){
   const l=document.getElementById("log");
   l.innerHTML+=`<div>${new Date().toLocaleTimeString()} – ${msg}</div>`;
   l.scrollTop=l.scrollHeight;
 }
+
 function finishTest(){
   const name=document.getElementById("testerName").value||"Unbekannt";
   const date=new Date().toLocaleDateString();
@@ -202,10 +224,10 @@ function finishTest(){
   alert(`Test abgeschlossen.\nName: ${name}\nDatum: ${date}`);
 }
 
-// Drag-Funktion
+// Drag
 function startDrag(e, target){
   e.preventDefault();
-  let startX=e.clientX, startY=e.clientY, rect=target.getBoundingClientRect();
+  let startX=e.clientX,startY=e.clientY,rect=target.getBoundingClientRect();
   function move(ev){
     target.style.left=(rect.left+ev.clientX-startX)+"px";
     target.style.top=(rect.top+ev.clientY-startY)+"px";
