@@ -67,7 +67,6 @@
     </div>
     <div id="errMsg"></div>
     <div id="preview">
-      <!-- Das Modul übernimmt die Diagramm-Anzeige -->
       <mermaid-diagram id="diagram" diagram=""></mermaid-diagram>
     </div>
   </div>
@@ -124,28 +123,52 @@
       a.click();
     };
 
-    // --- PNG/JPEG EXPORT ---
+    // --- PNG/JPEG EXPORT, robust gegen fehlende width/height ---
     function svgToImageData(svgText, mimeType = "image/png", quality = 0.92, callback) {
+      // SVG einlesen als DOM
+      let parser = new DOMParser();
+      let doc = parser.parseFromString(svgText, "image/svg+xml");
+      let svg = doc.documentElement;
+      let width = svg.getAttribute("width");
+      let height = svg.getAttribute("height");
+      // Falls width/height fehlen, nehme viewBox (Mermaid gibt meist viewBox="0 0 800 450" o.ä.)
+      if (!width || !height) {
+        let vb = svg.getAttribute("viewBox");
+        if (vb) {
+          let parts = vb.split(/\s+/);
+          if (parts.length === 4) {
+            width = width || parts[2];
+            height = height || parts[3];
+          }
+        }
+        // Fallback auf Standardwerte
+        width = width || 800;
+        height = height || 450;
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
+      }
+      // Als String exportieren
+      let serializer = new XMLSerializer();
+      let fixedSVG = serializer.serializeToString(svg);
+
       let img = new Image();
-      // SVG needs to be base64 for some browsers
-      let svg64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
+      let svg64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(fixedSVG)));
       img.onload = function() {
         let canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = width;
+        canvas.height = height;
         let ctx = canvas.getContext('2d');
-        // Weißer Hintergrund für JPEG!
         if (mimeType === "image/jpeg") {
           ctx.fillStyle = "#fff";
-          ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(function(blob) {
           callback(blob);
         }, mimeType, quality);
       };
       img.onerror = function() {
-        errMsg.textContent = "Fehler beim SVG-Konvertieren.";
+        errMsg.textContent = "Fehler beim SVG-Konvertieren (Bild konnte nicht geladen werden).";
       };
       img.src = svg64;
     }
