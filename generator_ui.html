@@ -3,21 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <title>5GL Klassen-UI/Code Generator 2.1</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
   <style>
-    html, body { height:100%; width:100%; margin:0; padding:0; }
-    body { font-family: sans-serif; background: #f6faff; margin:0; }
-    #wrapper { width: 99vw; min-height: 97vh; max-width:100vw; margin:0 auto; background:#fff; border-radius:10px; box-shadow:0 2px 14px #0002; padding:22px 28px; }
+    html, body { margin:0; padding:0; height:100%; }
+    body { font-family:sans-serif; background:#f6faff; }
+    #wrapper { max-width:100vw; padding:22px 28px; margin:auto; background:#fff; border-radius:10px; box-shadow:0 2px 14px #0002; }
     h2 { color:#0287c2; }
-    .small { font-size:0.97em; color:#888; }
+    .section { margin:26px 0 12px; font-size:1.13em; font-weight:600; color:#1667b6; }
+    #buttonBar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; align-items:center; }
+    #buttonBar button { cursor:pointer; }
     table { border-collapse:collapse; width:100%; margin-bottom:18px; }
     th, td { border:1px solid #e0e5ee; padding:6px 9px; }
     th { background:#e6f2ff; font-weight:500; }
-    .section { margin:26px 0 12px 0; font-size:1.13em; font-weight:600; color:#1667b6; }
-    .codebox { background:#f3f6fa; font-family:monospace; font-size:1.07em; border-radius:8px; padding:0; margin:11px 0 13px 0; overflow-x:auto; border:1px solid #e3e8ef;}
-    .codebox pre { margin:0; padding:12px 11px; font-family:inherit; background:none;}
-    #buttonBar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; align-items:center; }
-    #buttonBar button { cursor:pointer; }
-    textarea#docMd { width:99%; height:120px; font-family:monospace; font-size:1em; border-radius:7px; border:1px solid #b4c7de; background:#f3f7fc; }
+    #classCode pre, #markdown pre { background:#f3f6fa; padding:14px; border:1px solid #e3e8ef; border-radius:8px; overflow:auto; }
     #fileInput { display:none; }
     .status-getestet { color:#18a041; font-weight:bold; }
     .status-geplant { color:#c98906; font-weight:bold; }
@@ -28,20 +26,27 @@
 <div id="wrapper">
   <h2>5GL Klassen-Generator/Tester</h2>
   <div id="buttonBar">
-    <button onclick="document.getElementById('fileInput').click()" class="btn">Klassen-JSON laden</button>
+    <button onclick="document.getElementById('fileInput').click()">Klassen-JSON laden</button>
     <input type="file" id="fileInput" accept=".json">
     <button onclick="copyCode()">Code kopieren</button>
     <button onclick="printAll()">Alles drucken</button>
     <span id="klassename" style="font-weight:bold; color:#1667b6; font-size:1.08em;"></span>
   </div>
+
   <div id="overview"></div>
   <div id="methodTestUI"></div>
   <div id="fensterTestUI"></div>
+
   <div class="section">Auto-generierter Code</div>
-  <div id="classCode" class="codebox"></div>
+  <div id="classCode"><pre><code class="language-javascript">// Noch kein Code generiert</code></pre></div>
+
   <div class="section">Auto-generierte Markdown-Doku</div>
-  <textarea id="docMd" readonly></textarea>
+  <div id="markdown"><pre><code class="language-markdown"># Noch keine Doku generiert</code></pre></div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
 <script>
 let classObj = null;
 
@@ -101,89 +106,63 @@ function showClassInfo(cls) {
 function showClassCode(cls) {
   let code = "";
   if (!cls || !cls.class) return;
-  code += `class ${cls.class} {\\n`;
-  code += "  constructor(options) {\\n";
+  code += `class ${cls.class} {\n`;
+  code += "  constructor(options) {\n";
   if(Array.isArray(cls.properties)){
     cls.properties.forEach(p=>{
-      code += `    this.${p.name} = options?.${p.name} !== undefined ? options.${p.name} : null;\\n`;
+      code += `    this.${p.name} = options?.${p.name} !== undefined ? options.${p.name} : null;\n`;
     });
   }
-  code += "  }\\n";
+  code += "  }\n";
   if (Array.isArray(cls.methods)){
     cls.methods.forEach(m=>{
       let params = Array.isArray(m.parameters) ? m.parameters.join(", ") : "";
-      code += `  ${m.name}(${params}) {\\n`;
-      code += m.code ? "    " + m.code.replace(/\\n/g,"\\n    ") + "\\n" : "    // TODO\\n";
-      code += "  }\\n";
+      code += `\n  ${m.name}(${params}) {\n`;
+      code += m.code ? "    " + m.code.replace(/\\n/g,"\\n    ") + "\n" : "    // TODO\n";
+      code += "  }\n";
     });
   }
-  code += "}\\n";
-  document.getElementById("classCode").innerHTML = `<pre><code>${escapeHTML(code)}</code></pre>`;
+  code += "}\n";
+  document.querySelector("#classCode code").textContent = code;
+  Prism.highlightElement(document.querySelector("#classCode code"));
 }
 
-function escapeHTML(str){return str.replace(/[<>&]/g, s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));}
+function showMarkdown(cls) {
+  let md = `# Klasse: ${cls.class || ""}\n\n`;
+  if(cls.description) md += `${cls.description}\n\n`;
+  if (Array.isArray(cls.properties) && cls.properties.length) {
+    md += `## Eigenschaften\n\n| Name | Typ | Beschreibung |\n|---|---|---|\n`;
+    cls.properties.forEach(p=>{
+      md += `| ${p.name} | ${p.type} | ${p.description||""} |\n`;
+    });
+    md += "\n";
+  }
+  if (Array.isArray(cls.methods) && cls.methods.length) {
+    md += `## Methoden\n\n| Name | Parameter | Rückgabe | Status | Beschreibung |\n|---|---|---|---|---|\n`;
+    cls.methods.forEach(m=>{
+      md += `| ${m.name} | ${(m.parameters||[]).join(", ")} | ${m.returns||""} | ${m.status||""} | ${m.description||""} |\n`;
+    });
+    md += "\n";
+  }
+  if (Array.isArray(cls.events) && cls.events.length) {
+    md += `## Events\n\n| Name | Beschreibung |\n|---|---|\n`;
+    cls.events.forEach(e=>{
+      md += `| ${e.name} | ${e.description||""} |\n`;
+    });
+    md += "\n";
+  }
+  document.querySelector("#markdown code").textContent = md;
+  Prism.highlightElement(document.querySelector("#markdown code"));
+}
+
 function copyCode() {
-  let code = document.getElementById("classCode").textContent;
+  let code = document.querySelector("#classCode code").textContent;
   navigator.clipboard.writeText(code);
   alert("Code kopiert!");
 }
 
-function showMarkdown(cls) {
-  let md = `# Klasse: ${cls.class || ""}\\n\\n`;
-  if(cls.description) md += `${cls.description}\\n\\n`;
-  if (Array.isArray(cls.properties) && cls.properties.length) {
-    md += `## Eigenschaften\\n\\n| Name | Typ | Beschreibung |\\n|---|---|---|\\n`;
-    cls.properties.forEach(p=>{
-      md += `| ${p.name} | ${p.type} | ${p.description||""} |\\n`;
-    });
-    md += "\\n";
-  }
-  if (Array.isArray(cls.methods) && cls.methods.length) {
-    md += `## Methoden\\n\\n| Name | Parameter | Rückgabe | Status | Beschreibung |\\n|---|---|---|---|---|\\n`;
-    cls.methods.forEach(m=>{
-      md += `| ${m.name} | ${(m.parameters||[]).join(", ")} | ${m.returns||""} | ${m.status||""} | ${m.description||""} |\\n`;
-    });
-    md += "\\n";
-  }
-  if (Array.isArray(cls.events) && cls.events.length) {
-    md += `## Events\\n\\n| Name | Beschreibung |\\n|---|---|\\n`;
-    cls.events.forEach(e=>{
-      md += `| ${e.name} | ${e.description||""} |\\n`;
-    });
-    md += "\\n";
-  }
-  document.getElementById("docMd").value = md;
-}
-
 function printAll() {
-  const className = document.getElementById('klassename').textContent;
-  const overview = document.getElementById('overview').innerHTML;
-  const code = document.getElementById('classCode').innerText;
-  const markdown = document.getElementById('docMd').value;
-
-  const printWindow = window.open('', '', 'width=800,height=600');
-  printWindow.document.write(`
-  <html><head><title>Drucken: Alle Inhalte</title>
-  <style>
-    body { font-family: sans-serif; padding:30px; }
-    .section { margin:26px 0 12px 0; font-size:1.13em; font-weight:600; color:#1667b6; }
-    pre { background:#f3f6fa; padding:12px; border:1px solid #e3e8ef; border-radius:8px; white-space:pre-wrap; word-break:break-word; }
-  </style>
-  </head><body>
-  <h2>5GL Klassen-Generator – Gesamtdruck</h2>
-  <div class="section">Klassenname</div>
-  <div>${className}</div>
-  <div class="section">Beschreibung</div>
-  <div>${overview}</div>
-  <div class="section">Generierter Code</div>
-  <pre>${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
-  <div class="section">Generiertes Markdown</div>
-  <pre>${markdown.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
-  </body></html>
-  `);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(()=>printWindow.print(),300);
+  window.print();
 }
 </script>
 </body>
