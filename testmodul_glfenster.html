@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>5GL Klassen-Testmodul – GLFenster</title>
+<title>5GL Klassen-Testmodul – GLFenster im Testcontainer</title>
 <style>
   body { font-family:sans-serif; background:#f6faff; margin:0; padding:0; }
   #wrapper { max-width:100vw; padding:20px; margin:auto; background:#fff; border-radius:10px; box-shadow:0 2px 14px #0002; }
@@ -14,25 +14,62 @@
   th { background:#e6f2ff; font-weight:500; }
   pre { background:#f3f6fa; padding:12px; border:1px solid #e3e8ef; border-radius:8px; }
   #log { background:#f9f9f9; border:1px solid #ccc; padding:8px; height:150px; overflow:auto; }
-  .glfenster { position:absolute; top:150px; left:150px; width:300px; min-height:100px; background:#fff; border:2px solid #b5d2f6; border-radius:8px; box-shadow:0 4px 12px #0002; padding:10px; z-index:50; }
+  .testcontainer {
+    position:fixed;
+    top:100px;
+    left:100px;
+    width:400px;
+    min-height:200px;
+    background:#fff;
+    border:2px solid #0287c2;
+    border-radius:8px;
+    box-shadow:0 4px 16px #0003;
+    z-index:999;
+    display:flex;
+    flex-direction:column;
+    resize:both;
+    overflow:auto;
+  }
+  .testcontainer-header {
+    background:#e6f2ff;
+    padding:6px 10px;
+    cursor:move;
+    font-weight:bold;
+    user-select:none;
+  }
+  .testcontainer-content {
+    padding:10px;
+    flex:1;
+  }
+  .glfenster {
+    background:#f9f9f9;
+    border:1px solid #ccc;
+    border-radius:6px;
+    padding:8px;
+  }
   .glfenster .title { font-weight:bold; margin-bottom:6px; }
   .btn { cursor:pointer; }
 </style>
 </head>
 <body>
 <div id="wrapper">
-  <h2>5GL Klassen-Testmodul – GLFenster</h2>
+  <h2>5GL Klassen-Testmodul – GLFenster im Testcontainer</h2>
   <div class="section">Eigenschaften</div>
   <div id="properties"></div>
 
   <div class="section">Methoden-Testcenter</div>
   <div id="methods"></div>
 
-  <div class="section">Testfenster</div>
-  <div id="testContainer"></div>
-
   <div class="section">Protokoll</div>
   <div id="log"></div>
+</div>
+
+<!-- Testfenster -->
+<div id="testContainer" class="testcontainer">
+  <div class="testcontainer-header" onmousedown="startDrag(event, this.parentNode)">
+    Testfenster für GLFenster
+  </div>
+  <div class="testcontainer-content" id="testContent"></div>
 </div>
 
 <script>
@@ -56,42 +93,38 @@ const json = {
   ]
 };
 
-// Log-Funktion
 function log(msg) {
   const l = document.getElementById('log');
   l.innerHTML += `<div>${new Date().toLocaleTimeString()} – ${msg}</div>`;
   l.scrollTop = l.scrollHeight;
 }
 
-// Klasse dynamisch erzeugen
 class GLFenster {
   constructor(options) {
     this.title = options?.title || "Neues Fenster";
-    this.x = options?.x || 150;
-    this.y = options?.y || 150;
+    this.x = options?.x || 0;
+    this.y = options?.y || 0;
     this.createWindow();
   }
   createWindow() {
     this.el = document.createElement("div");
     this.el.className = "glfenster";
-    this.el.style.left = this.x+"px";
-    this.el.style.top = this.y+"px";
-    this.el.innerHTML = `<div class="title">${this.title}</div><div>Inhalt...</div>`;
-    document.getElementById("testContainer").appendChild(this.el);
+    this.el.innerHTML = `<div class="title">${this.title}</div><div>Inhalt des GLFensters</div>`;
+    document.getElementById("testContent").appendChild(this.el);
   }
   maximize() {
-    this.el.style.width = "90vw";
-    this.el.style.height = "80vh";
+    this.el.style.width = "100%";
+    this.el.style.height = "150px";
     log("Fenster maximiert.");
   }
   minimize() {
-    this.el.style.width = "200px";
+    this.el.style.width = "100%";
     this.el.style.height = "50px";
     log("Fenster minimiert.");
   }
   restore() {
-    this.el.style.width = "300px";
-    this.el.style.height = "200px";
+    this.el.style.width = "100%";
+    this.el.style.height = "100px";
     log("Fenster wiederhergestellt.");
   }
   setTitle(title) {
@@ -100,14 +133,8 @@ class GLFenster {
     log(`Titel gesetzt auf: ${title}`);
   }
   moveTo(x,y) {
-    this.x = x;
-    this.y = y;
-    this.el.style.left = x+"px";
-    this.el.style.top = y+"px";
-    log(`Fenster verschoben nach (${x},${y})`);
+    log(`moveTo(${x},${y}) ausgeführt (nur Log, kein echtes Bewegen)`);
   }
-  // print() nicht implementiert
-  // focus() nicht implementiert
 }
 
 // Instanz erzeugen
@@ -129,7 +156,6 @@ propDiv.addEventListener("input", e=>{
     let val = e.target.value;
     if(json.properties.find(p=>p.name===name).type==="number") val = Number(val);
     instance[name]=val;
-    if(name==="x"||name==="y") instance.moveTo(instance.x, instance.y);
     if(name==="title") instance.setTitle(val);
     log(`Eigenschaft "${name}" geändert zu "${val}"`);
   }
@@ -144,7 +170,6 @@ json.methods.forEach(m=>{
   btn.onclick=()=>{
     if(typeof instance[m.name]==="function"){
       if(m.parameters.length){
-        // Parameter abfragen
         const inputs = m.parameters.map(p=>prompt(`Wert für ${p}:`));
         instance[m.name](...inputs);
       } else {
@@ -157,6 +182,23 @@ json.methods.forEach(m=>{
   };
   methDiv.appendChild(btn);
 });
+
+// Drag des Testcontainers
+function startDrag(e, target){
+  e.preventDefault();
+  let startX = e.clientX, startY = e.clientY;
+  let rect = target.getBoundingClientRect();
+  function move(ev){
+    target.style.left = (rect.left + ev.clientX - startX) + "px";
+    target.style.top = (rect.top + ev.clientY - startY) + "px";
+  }
+  function stop(){
+    window.removeEventListener("mousemove", move);
+    window.removeEventListener("mouseup", stop);
+  }
+  window.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", stop);
+}
 </script>
 </body>
 </html>
