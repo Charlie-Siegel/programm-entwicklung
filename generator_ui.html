@@ -2,366 +2,68 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>5GL Klassen-UI/Code Generator 2.1</title>
+  <title>5GL Klassen-Generator mit Druckfunktion</title>
   <style>
-    html, body { height:100%; width:100%; margin:0; padding:0; }
-    body { font-family: sans-serif; background: #f6faff; margin:0; height:100%; }
-    #wrapper { width: 99vw; min-height: 97vh; max-width:100vw; margin: 0 auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px #0002; padding: 22px 28px 22px 28px;}
-    h2 { color: #0287c2; }
-    .small { font-size:0.97em; color:#888; }
-    table { border-collapse: collapse; width:100%; margin-bottom:18px; }
-    th, td { border:1px solid #e0e5ee; padding:6px 9px; }
-    th { background:#e6f2ff; font-weight:500; }
+    body { font-family: sans-serif; margin:0; padding:0; }
+    #wrapper { padding:30px; }
     .section { margin:26px 0 12px 0; font-size:1.13em; font-weight:600; color:#1667b6; }
-    .codebox { background:#f3f6fa; font-family:monospace; font-size:1.07em; border-radius:8px; padding:0; margin:11px 0 13px 0; overflow-x:auto; border:1px solid #e3e8ef;}
-    .codebox pre { margin:0; padding:12px 11px; font-family:inherit; background:none;}
-    #methodTestUI button { margin-right:8px; margin-bottom:8px; }
-    #codeActions { margin-bottom:9px;}
-    textarea#docMd { width:99%; height:120px; font-family:monospace; font-size:1em; border-radius:7px; border:1px solid #b4c7de; background:#f3f7fc;}
-    #fileInput { display:none; }
-    .status-getestet { color:#18a041; font-weight:bold;}
-    .status-geplant { color:#c98906; font-weight:bold;}
-    .status-fehlerhaft { color:#c52b2b; font-weight:bold;}
-    /* Fenster-Style (wie im Demo) */
-    .glfenster {
-      position: absolute; top: 120px; left: 170px; width: 420px; min-width:240px;
-      min-height: 60px; background: #fff; box-shadow: 0 4px 18px #0002;
-      border-radius: 11px; z-index: 50; border: 1.8px solid #b5d2f6;
-      resize: both; overflow: auto;
-      transition: box-shadow .15s;
-    }
-    .glfenster:focus-within, .glfenster.active { box-shadow: 0 6px 24px #0497fa33, 0 2px 10px #0002; }
-    .glfenster.minimized { height:34px!important; min-height:30px; overflow:hidden;}
-    .glfenster.maximized {
-      left:0!important; top:0!important; width:100vw!important; height:96vh!important;
-      min-width:100px!important; min-height:50px!important; border-radius:0;
-      z-index:999!important;
-    }
-    .titlebar {
-      height:34px; background:#eaf4fc; border-radius:11px 11px 0 0;
-      display:flex; align-items:center; padding:0 12px 0 12px; cursor:move;
-      user-select:none; font-weight:500; color:#0275b8;
-      border-bottom:1px solid #d7eafd; position:relative;
-    }
-    .titlebar .icon { width:20px; height:20px; margin-right:10px;}
-    .titlebar .title { flex:1 1 0; font-size:1.13em; letter-spacing:.3px;}
-    .titlebar .window-btn { border:none; background:none; font-size:1.22em; margin-left:5px; cursor:pointer; color:#479; opacity:0.78;}
-    .titlebar .window-btn:hover { color:#0287c2; background:#def5ff; border-radius:5px;}
-    .glfenster .content { padding:18px 17px 16px 17px; font-size:1.08em; color:#113; min-height:32px;}
-    .resize-corner { position:absolute; right:3px; bottom:2px; width:14px; height:14px; cursor:se-resize; z-index:10;}
-    .resize-corner:after { content:""; display:block; width:100%; height:100%; background:linear-gradient(135deg, #cbe4f9 55%, #fff 100%); border-radius:2px;}
-    .minimized .content { display:none;}
-    .testbox { background:#f9fff2; padding:11px 15px 10px 15px; margin:8px 0 12px 0; border:1px solid #dde7cb; border-radius:7px; color:#183;}
+    pre { background:#f3f6fa; padding:12px; border:1px solid #e3e8ef; border-radius:8px; }
+    textarea { width:100%; height:200px; }
   </style>
 </head>
 <body>
-  <div id="wrapper">
-    <h2>5GL Klassen-Generator/Tester</h2>
-    <div style="margin-bottom:15px;">
-      <button onclick="document.getElementById('fileInput').click()" class="btn">Klassen-JSON laden</button>
-      <input type="file" id="fileInput" accept=".json">
-      <span id="klassename" style="font-weight:bold; color:#1667b6; font-size:1.08em; margin-left:24px;"></span>
-    </div>
-    <div id="overview"></div>
-    <div id="methodTestUI"></div>
-    <div id="fensterTestUI"></div>
-    <div class="section">Auto-generierter Code</div>
-    <div id="codeActions">
-      <button onclick="copyCode()">Code kopieren</button>
-    </div>
-    <div id="classCode" class="codebox"></div>
-    <div class="section">Auto-generierte Markdown-Doku</div>
-    <textarea id="docMd" readonly></textarea>
+<div id="wrapper">
+  <h2>5GL Klassen-Generator mit Druckfunktion</h2>
+  <button onclick="printAll()">Alles drucken</button>
+
+  <!-- Hier wird automatisch deine Klassenbeschreibung angezeigt -->
+  <div id="overview">
+    <p><b>Beispielklasse</b> – Diese Beschreibung zeigt alle geladenen Informationen.</p>
   </div>
-  <script>
-    let classObj = null;
-    let testFenster = null;
 
-    document.getElementById('fileInput').addEventListener('change', function(e){
-      let file = e.target.files[0];
-      if(!file) return;
-      let reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          classObj = JSON.parse(evt.target.result);
-          showClassInfo(classObj);
-        } catch (err) {
-          alert("Fehler beim Laden:\n"+err.message);
-        }
-      };
-      reader.readAsText(file);
-    });
+  <!-- Hier erscheint der generierte Code -->
+  <div class="section">Auto-generierter Code</div>
+  <div id="classCode" class="codebox">
+    <pre><code>class Beispiel {
+  constructor() {}
+}</code></pre>
+  </div>
 
-    function showClassInfo(cls) {
-      document.getElementById('klassename').textContent = cls.class ? "Klasse: " + cls.class : "";
-      let html = "";
-      // Properties
-      if (Array.isArray(cls.properties) && cls.properties.length) {
-        html += `<div class="section">Eigenschaften</div>`;
-        html += `<table><tr><th>Name</th><th>Typ</th><th>Beschreibung</th></tr>`;
-        cls.properties.forEach(p=>{
-          html += `<tr><td>${p.name}</td><td>${p.type}</td><td>${p.description||""}</td></tr>`;
-        });
-        html += `</table>`;
-      }
-      // Methods
-      if (Array.isArray(cls.methods) && cls.methods.length) {
-        html += `<div class="section">Methoden</div>`;
-        html += `<table><tr><th>Name</th><th>Parameter</th><th>Rückgabe</th><th>Status</th><th>Beschreibung</th></tr>`;
-        cls.methods.forEach(m=>{
-          html += `<tr>
-            <td>${m.name}</td>
-            <td>${Array.isArray(m.parameters)?m.parameters.join(", "):""}</td>
-            <td>${m.returns||""}</td>
-            <td><span class="status-${m.status||"geplant"}">${m.status||""}</span></td>
-            <td>${m.description||""}</td>
-          </tr>`;
-        });
-        html += `</table>`;
-      }
-      // Events
-      if (Array.isArray(cls.events) && cls.events.length) {
-        html += `<div class="section">Events</div>`;
-        html += `<table><tr><th>Name</th><th>Beschreibung</th></tr>`;
-        cls.events.forEach(e=>{
-          html += `<tr><td>${e.name}</td><td>${e.description||""}</td></tr>`;
-        });
-        html += `</table>`;
-      }
-      document.getElementById('overview').innerHTML = html;
-      showMethodTestUI(cls);
-      showFensterTestUI(cls);
-      showClassCode(cls);
-      showMarkdown(cls);
-    }
+  <!-- Hier erscheint die Markdown-Dokumentation -->
+  <div class="section">Auto-generierte Markdown-Doku</div>
+  <textarea id="docMd" readonly># Klasse Beispiel
 
-    // Test-UI: Steuert bei Fensterklassen ein echtes Testfenster
-    function showMethodTestUI(cls) {
-      let div = document.getElementById('methodTestUI');
-      div.innerHTML = "";
-      if (!(cls && Array.isArray(cls.methods) && cls.methods.length)) return;
-      let fensterKlasse = (cls.class||"").toLowerCase().includes("fenster") || (cls.properties||[]).some(p=>p.name==='title'&&p.name==='x');
-      if(!fensterKlasse){
-        div.innerHTML = `<div class="section">Test-UI: Methoden (Demo, nicht an Objekt gebunden)</div>`;
-        cls.methods.forEach(m => {
-          let params = Array.isArray(m.parameters) && m.parameters.length ? "("+m.parameters.map(p=>"?").join(", ")+")" : "()";
-          let disabled = m.status!=="getestet" ? "disabled title='Nicht getestet'" : "";
-          div.innerHTML += `<button ${disabled} onclick="alert('Demo: ${m.name}${params}')">${m.name}${params}</button>`;
-        });
-      }
-    }
+Dies ist eine Beispiel-Markdown-Dokumentation.</textarea>
+</div>
 
-    // Fenster-Test: Bei GLFenster-Klasse wird ein echtes Testfenster gebaut
-    function showFensterTestUI(cls){
-      let d = document.getElementById("fensterTestUI");
-      d.innerHTML = "";
-      if (!cls.class || !cls.class.toLowerCase().includes("fenster")) { d.innerHTML = ""; return; }
-      // Testfenster erzeugen oder reaktivieren
-      if(testFenster && document.body.contains(testFenster)) testFenster.remove();
-      testFenster = makeFenster("Testfenster für "+(cls.class||"Fenster"));
-      d.innerHTML = `<div class="section">Live-Testfenster</div>
-      <div class="testbox">
-        <b>Live-Test:</b> Steuere das Fenster mit den Methoden-Buttons.<br>
-        <span class="small">(z.B. maximize, minimize, setTitle, setContent, moveTo ...)</span>
-      </div>`;
-      // Buttons für Methoden
-      let btns = "";
-      (cls.methods||[]).forEach(m=>{
-        if(m.status!=="getestet") return;
-        let params = (m.parameters||[]);
-        btns += `<button onclick="runFensterMethod('${m.name}', this)" data-method="${m.name}" ${params.length>0 ? "title='Parameter werden gesetzt'" : ""}>${m.name}${params.length?"("+params.map(p=>"?").join(", ")+")":""}</button>`;
-      });
-      d.innerHTML += btns;
-    }
+<script>
+function printAll() {
+  const overview = document.getElementById('overview').innerHTML;
+  const code = document.getElementById('classCode').innerText;
+  const markdown = document.getElementById('docMd').value;
 
-    // Hilfsfunktionen für das Fenster
-    function makeFenster(title){
-      let f = document.createElement("div");
-      f.className = "glfenster";
-      f.innerHTML = `
-        <div class="titlebar" onmousedown="startDrag(event, this.parentNode)">
-          <span class="title">${title}</span>
-          <button class="window-btn" onclick="minFenster(event, this)">_</button>
-          <button class="window-btn" onclick="maxFenster(event, this)">□</button>
-          <button class="window-btn" onclick="closeFenster(event, this)">×</button>
-        </div>
-        <div class="content">
-          Hier kannst du alle Methoden direkt testen.<br>
-          <span class="small">Klicke auf einen Button oben im Generator, um das Fenster zu steuern.</span>
-        </div>
-        <div class="resize-corner" onmousedown="startResize(event, this.parentNode)"></div>
-      `;
-      document.body.appendChild(f);
-      f.style.display = "block";
-      return f;
-    }
-    // Methoden-Testlogik
-    function runFensterMethod(method, btn){
-      if(!testFenster) return;
-      // Parameterhandling für Test
-      if(method==="setTitle"){
-        let t = prompt("Neuer Titel:", "GLFenster Test");
-        if(t!==null) testFenster.querySelector(".title").textContent = t;
-        return;
-      }
-      if(method==="setContent"){
-        let c = prompt("Neuer Inhalt:", "<b>Neuer Fensterinhalt</b>");
-        if(c!==null) testFenster.querySelector(".content").innerHTML = c;
-        return;
-      }
-      if(method==="moveTo"){
-        let x = prompt("Neue X-Position (px):", "120");
-        let y = prompt("Neue Y-Position (px):", "120");
-        if(x!==null && y!==null) { testFenster.style.left = x+"px"; testFenster.style.top = y+"px"; }
-        return;
-      }
-      if(method==="resizeTo"){
-        let w = prompt("Neue Breite (px):", "420");
-        let h = prompt("Neue Höhe (px):", "200");
-        if(w!==null && h!==null) { testFenster.style.width = w+"px"; testFenster.style.height = h+"px"; }
-        return;
-      }
-      if(method==="minimize"){
-        testFenster.classList.remove("maximized");
-        testFenster.classList.add("minimized");
-        return;
-      }
-      if(method==="maximize"){
-        testFenster.classList.remove("minimized");
-        testFenster.classList.add("maximized");
-        return;
-      }
-      if(method==="restore"){
-        testFenster.classList.remove("maximized"); testFenster.classList.remove("minimized");
-        return;
-      }
-      if(method==="close"){
-        testFenster.style.display = "none";
-        return;
-      }
-      if(method==="open"){
-        testFenster.style.display = "block";
-        return;
-      }
-      if(method==="print"){
-        let printContent = testFenster.querySelector(".content").innerHTML;
-        let printWin = window.open("", "", "width=680,height=600");
-        printWin.document.write(`
-          <html><head>
-            <title>Fenster drucken</title>
-            <style>body{font-family:sans-serif;margin:30px;} .small{font-size:0.97em; color:#888;}</style>
-          </head>
-          <body>
-          <h3>${testFenster.querySelector(".title").textContent}</h3>
-          <div>${printContent}</div>
-          </body></html>
-        `);
-        printWin.document.close();
-        printWin.focus();
-        setTimeout(()=>printWin.print(), 200);
-        return;
-      }
-      if(method==="focus"){
-        testFenster.style.zIndex = 999;
-        return;
-      }
-      // Fallback: Demo
-      alert("Methode "+method+" ausgeführt.");
-    }
-
-    // Fenster-Drag & Resize wie im Demo
-    function startDrag(e, fenster) {
-      if (e.target.classList.contains("window-btn")) return;
-      e.preventDefault();
-      let rect = fenster.getBoundingClientRect();
-      let startX = e.clientX, startY = e.clientY;
-      let offsetX = startX - rect.left, offsetY = startY - rect.top;
-      function move(ev) {
-        fenster.style.left = (ev.clientX - offsetX) + "px";
-        fenster.style.top = (ev.clientY - offsetY) + "px";
-      }
-      function up() {
-        window.removeEventListener("mousemove", move);
-        window.removeEventListener("mouseup", up);
-      }
-      window.addEventListener("mousemove", move);
-      window.addEventListener("mouseup", up);
-    }
-    function startResize(e, fenster) {
-      e.preventDefault(); e.stopPropagation();
-      let startX = e.clientX, startY = e.clientY;
-      let startW = fenster.offsetWidth, startH = fenster.offsetHeight;
-      function move(ev) {
-        fenster.style.width = Math.max(240, startW + (ev.clientX - startX)) + "px";
-        fenster.style.height = Math.max(60, startH + (ev.clientY - startY)) + "px";
-      }
-      function up() {
-        window.removeEventListener("mousemove", move);
-        window.removeEventListener("mouseup", up);
-      }
-      window.addEventListener("mousemove", move);
-      window.addEventListener("mouseup", up);
-    }
-
-    // Code-Generator: Macht eine JS-Klasse aus der JSON
-    function showClassCode(cls) {
-      let code = "";
-      if (!cls || !cls.class) return;
-      code += `class ${cls.class} {\n`;
-      // Constructor
-      code += "  constructor(options) {\n";
-      if(Array.isArray(cls.properties)){
-        cls.properties.forEach(p=>{
-          code += `    this.${p.name} = options?.${p.name} !== undefined ? options.${p.name} : null;\n`;
-        });
-      }
-      code += "  }\n";
-      // Methods
-      if (Array.isArray(cls.methods)){
-        cls.methods.forEach(m=>{
-          let params = Array.isArray(m.parameters) ? m.parameters.join(", ") : "";
-          code += `  ${m.name}(${params}) {\n`;
-          code += m.code ? "    " + m.code.replace(/\n/g,"\n    ") + "\n" : "    // TODO\n";
-          code += "  }\n";
-        });
-      }
-      code += "}\n";
-      document.getElementById("classCode").innerHTML = `<pre><code>${escapeHTML(code)}</code></pre>`;
-    }
-    function escapeHTML(str){return str.replace(/[<>&]/g, s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));}
-    function copyCode() {
-      let code = document.getElementById("classCode").textContent;
-      navigator.clipboard.writeText(code);
-      alert("Code kopiert!");
-    }
-
-    // Markdown-Doku-Generator
-    function showMarkdown(cls) {
-      let md = `# Klasse: ${cls.class || ""}\n\n`;
-      if(cls.description) md += `${cls.description}\n\n`;
-      if (Array.isArray(cls.properties) && cls.properties.length) {
-        md += `## Eigenschaften\n\n| Name | Typ | Beschreibung |\n|---|---|---|\n`;
-        cls.properties.forEach(p=>{
-          md += `| ${p.name} | ${p.type} | ${p.description||""} |\n`;
-        });
-        md += "\n";
-      }
-      if (Array.isArray(cls.methods) && cls.methods.length) {
-        md += `## Methoden\n\n| Name | Parameter | Rückgabe | Status | Beschreibung |\n|---|---|---|---|---|\n`;
-        cls.methods.forEach(m=>{
-          md += `| ${m.name} | ${(m.parameters||[]).join(", ")} | ${m.returns||""} | ${m.status||""} | ${m.description||""} |\n`;
-        });
-        md += "\n";
-      }
-      if (Array.isArray(cls.events) && cls.events.length) {
-        md += `## Events\n\n| Name | Beschreibung |\n|---|---|\n`;
-        cls.events.forEach(e=>{
-          md += `| ${e.name} | ${e.description||""} |\n`;
-        });
-        md += "\n";
-      }
-      document.getElementById("docMd").value = md;
-    }
-  </script>
+  const printWindow = window.open('', '', 'width=800,height=600');
+  printWindow.document.write(`
+  <html><head><title>Drucken: Alle Inhalte</title>
+  <style>
+    body { font-family: sans-serif; padding:30px; }
+    .section { margin:26px 0 12px 0; font-size:1.13em; font-weight:600; color:#1667b6; }
+    pre { background:#f3f6fa; padding:12px; border:1px solid #e3e8ef; border-radius:8px; }
+  </style>
+  </head><body>
+  <h2>5GL Klassen-Generator – Gesamtdruck</h2>
+  <div class="section">Beschreibung</div>
+  <div>${overview}</div>
+  <div class="section">Generierter Code</div>
+  <pre>${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+  <div class="section">Generiertes Markdown</div>
+  <pre>${markdown.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+  </body></html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(()=>printWindow.print(), 300);
+}
+</script>
 </body>
 </html>
